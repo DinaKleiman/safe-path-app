@@ -5,6 +5,11 @@ import {
   buildRoadGraph,
   buildTrafficLightRoute,
 } from "./utils/municipalityRouting";
+import {
+  buildMunicipalitySearchIndex,
+  findMunicipalityPlace,
+  searchMunicipalityPlaces,
+} from "./utils/municipalitySearch";
 import "./styles/app.css";
 
 const TEL_AVIV_BOUNDS = {
@@ -151,14 +156,17 @@ function estimateWalkingDurationSeconds(distanceMeters) {
   return distanceMeters / WALKING_SPEED_METERS_PER_SECOND;
 }
 
-async function searchAddressSuggestions(address, signal) {
+async function searchAddressSuggestions(address, signal, municipalitySearchIndex) {
   const normalized = normalizeAddress(address);
 
   if (normalized.length < MIN_AUTOCOMPLETE_LENGTH) {
     return [];
   }
 
-  const localSuggestions = getLocalSuggestions(normalized);
+  const localSuggestions = [
+    ...getLocalSuggestions(normalized),
+    ...searchMunicipalityPlaces(municipalitySearchIndex, normalized),
+  ];
   const queries = buildGeocodeQueries(normalized);
   const externalSuggestions = [];
   const seen = new Set(localSuggestions.map((item) => item.displayName));
@@ -212,7 +220,14 @@ async function searchAddressSuggestions(address, signal) {
   return [...localSuggestions, ...externalSuggestions].slice(0, 5);
 }
 
-function AddressField({ id, label, value, onChange, placeholder }) {
+function AddressField({
+  id,
+  label,
+  municipalitySearchIndex,
+  value,
+  onChange,
+  placeholder,
+}) {
   const [suggestions, setSuggestions] = useState([]);
   const [status, setStatus] = useState("idle");
   const [open, setOpen] = useState(false);
@@ -234,6 +249,7 @@ function AddressField({ id, label, value, onChange, placeholder }) {
         const results = await searchAddressSuggestions(
           normalized,
           controller.signal,
+          municipalitySearchIndex,
         );
 
         setSuggestions(results);
@@ -250,7 +266,7 @@ function AddressField({ id, label, value, onChange, placeholder }) {
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [value]);
+  }, [municipalitySearchIndex, value]);
 
   function handleSelect(suggestion) {
     onChange(suggestion.displayName);
@@ -286,7 +302,9 @@ function AddressField({ id, label, value, onChange, placeholder }) {
           )}
 
           {status === "empty" && (
-            <div className="suggestion-status">No Tel Aviv match found yet</div>
+            <div className="suggestion-status">
+              Enter a full address with building number, or use a place prefix.
+            </div>
           )}
 
           {status === "error" && (
@@ -304,9 +322,14 @@ function AddressField({ id, label, value, onChange, placeholder }) {
             >
               <span>{suggestion.displayName}</span>
               <small>
-                {suggestion.source === "local"
-                  ? "Local Tel Aviv match"
-                  : "Address match"}
+                {
+                  {
+                    "municipality-address": "Address",
+                    "municipality-school": "School",
+                    "municipality-street": "Street",
+                    local: "Saved place",
+                  }[suggestion.source] || "Address"
+                }
               </small>
             </button>
           ))}
@@ -322,6 +345,8 @@ export default function App() {
   const [routeMode, setRouteMode] = useState("safest");
   const [roadGraph, setRoadGraph] = useState(null);
   const [roadGraphError, setRoadGraphError] = useState("");
+  const [municipalitySearchIndex, setMunicipalitySearchIndex] = useState(null);
+  const [municipalitySearchError, setMunicipalitySearchError] = useState("");
   const [route, setRoute] = useState(null);
   const [routeSummary, setRouteSummary] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -356,11 +381,51 @@ export default function App() {
     loadRoadNetwork();
   }, []);
 
+  useEffect(() => {
+    async function loadMunicipalitySearchData() {
+      try {
+        const [addressesResponse, schoolsResponse] = await Promise.all([
+          fetch("/data/addresses.geojson"),
+          fetch("/data/schools.geojson"),
+        ]);
+
+        if (!addressesResponse.ok) {
+          throw new Error("Could not load municipality addresses.geojson");
+        }
+
+        if (!schoolsResponse.ok) {
+          throw new Error("Could not load municipality schools.geojson");
+        }
+
+        const addresses = await addressesResponse.json();
+        const schools = await schoolsResponse.json();
+
+        setMunicipalitySearchIndex(
+          buildMunicipalitySearchIndex(addresses, schools),
+        );
+        setMunicipalitySearchError("");
+      } catch (error) {
+        setMunicipalitySearchError(error.message);
+      }
+    }
+
+    loadMunicipalitySearchData();
+  }, []);
+
   async function geocodeAddress(address) {
     const localFallback = getLocalFallback(address);
 
     if (localFallback) {
       return localFallback;
+    }
+
+    const municipalityPlace = findMunicipalityPlace(
+      municipalitySearchIndex,
+      address,
+    );
+
+    if (municipalityPlace) {
+      return municipalityPlace;
     }
 
     const queries = buildGeocodeQueries(address);
@@ -514,6 +579,7 @@ export default function App() {
             <AddressField
               id="from"
               label="From"
+              municipalitySearchIndex={municipalitySearchIndex}
               value={from}
               onChange={setFrom}
               placeholder="Example: Dizengoff Center"
@@ -522,6 +588,7 @@ export default function App() {
             <AddressField
               id="to"
               label="To"
+              municipalitySearchIndex={municipalitySearchIndex}
               value={to}
               onChange={setTo}
               placeholder="Example: Tel Aviv Port"
@@ -567,6 +634,10 @@ export default function App() {
 
             {roadGraphError && (
               <p className="error-text">{roadGraphError}</p>
+            )}
+
+            {municipalitySearchError && (
+              <p className="error-text">{municipalitySearchError}</p>
             )}
 
             {!routeSummary && (
