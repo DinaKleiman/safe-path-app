@@ -1,0 +1,17 @@
+[
+  {
+    "layer_id": 507,
+    "file": "data/raw/tel_aviv_roads_507_raw.geojson",
+    "feature_count": 8864
+  },
+  {
+    "layer_id": 547,
+    "file": "data/raw/tel_aviv_signalized_intersections_547_raw.geojson",
+    "feature_count": 495
+  },
+  {
+    "layer_id": 836,
+    "file": "data/raw/tel_aviv_intersections_836_raw.geojson",
+    "feature_count": 5263
+  }
+]
