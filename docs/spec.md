@@ -12,11 +12,10 @@ The first version focuses on:
 - Displaying a route on the map.
 - Showing Tel Aviv traffic-light locations.
 - Supporting Hebrew and English address input.
-- Preparing the logic for future safety-based route scoring.
 
 ## 2. Core Data Principle
 
-Safe Path should use Tel Aviv Municipality maps as the source of truth for safety and routing logic.
+Safe Path is based on Tel Aviv Municipality maps as the source of truth for safety and routing logic.
 
 This means municipality data decides:
 
@@ -27,7 +26,7 @@ This means municipality data decides:
 - Future bicycle-lane logic.
 - Future pedestrian-safety scoring.
 
-External services may be used only as helper or display layers. They should not decide whether a route is safe.
+ External services may be used only as helper or display layers. They should not decide whether a route is safe.
 
 Allowed helper/display layers:
 
@@ -309,6 +308,7 @@ Example scoring factors:
 - Accident-prone area: negative score.
 - Quiet street: positive score.
 - Extra walking time: small negative score.
+- Official govmap car accidents interceptions
 
 ### Example
 
@@ -421,7 +421,17 @@ For bicycle mode, safety scoring should use bicycle-specific signals:
 - Dangerous intersection: negative score.
 - Bicycle accident history: negative score.
 
-## 14. Current Implemented Behavior
+## 14. Future Direction: משמרת זהב  
+
+Future versions should add משמרת זהב road crossing near schools for children at spesific days and hours.
+
+This should be based on school data.
+
+Purpose:
+
+- Help children choose safer routes to school.
+
+## 15. Current Implemented Behavior
 
 Current app behavior:
 
