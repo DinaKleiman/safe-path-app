@@ -3,6 +3,7 @@ import MapView from "./components/MapView";
 import {
   buildMunicipalityRoute,
   buildRoadGraph,
+  buildTrafficLightRoute,
 } from "./utils/municipalityRouting";
 import "./styles/app.css";
 
@@ -417,17 +418,20 @@ export default function App() {
     };
   }
 
-  async function getWalkingRoute(start, end) {
+  async function getWalkingRoute(start, end, mode = routeMode) {
     if (!roadGraph) {
       throw new Error("Municipality road network is still loading.");
     }
 
-    const municipalityRoute = buildMunicipalityRoute(
-      roadGraph,
-      start,
-      end,
-      routeMode,
-    );
+    const municipalityRoute =
+      mode === "trafficLightsPriority"
+        ? buildTrafficLightRoute(roadGraph, start, end)
+        : buildMunicipalityRoute(
+            roadGraph,
+            start,
+            end,
+            mode,
+          );
 
     return {
       type: "Feature",
@@ -447,7 +451,7 @@ export default function App() {
     };
   }
 
-  async function handleFindRoute() {
+  async function calculateRoute(mode = routeMode, extraSummary = {}) {
     try {
       setLoading(true);
       setRoute(null);
@@ -459,7 +463,7 @@ export default function App() {
 
       const start = await geocodeAddress(from);
       const end = await geocodeAddress(to);
-      const walkingRoute = await getWalkingRoute(start, end);
+      const walkingRoute = await getWalkingRoute(start, end, mode);
 
       setRoute(walkingRoute);
       setRouteSummary({
@@ -468,10 +472,11 @@ export default function App() {
         distanceMeters: walkingRoute.properties.distanceMeters,
         durationSeconds: walkingRoute.properties.durationSeconds,
         source: walkingRoute.properties.source,
-        routeMode,
+        routeMode: mode,
         trafficLightCount: walkingRoute.properties.trafficLightCount,
         message:
           "Route is calculated from Tel Aviv municipality roads.geojson and traffic-light data.",
+        ...extraSummary,
       });
     } catch (error) {
       setRouteSummary({
@@ -480,6 +485,16 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleFindRoute() {
+    await calculateRoute();
+  }
+
+  async function handleTryHarder() {
+    await calculateRoute("trafficLightsPriority", {
+      triedHarder: true,
+    });
   }
 
   return (
@@ -578,13 +593,37 @@ export default function App() {
                   <strong>Route mode:</strong>{" "}
                   {
                     ROUTE_MODES.find((mode) => mode.id === routeSummary.routeMode)
-                      ?.label
+                      ?.label || "Try harder"
                   }
                 </p>
                 <p>
                   <strong>Traffic lights on route:</strong>{" "}
                   {routeSummary.trafficLightCount}
                 </p>
+                {routeSummary.routeMode === "safest" &&
+                  routeSummary.trafficLightCount === 0 && (
+                    <div className="route-note">
+                      <p>
+                        No traffic-light crossings were found on this route.
+                        You can try a larger detour.
+                      </p>
+                      <button
+                        className="secondary-button"
+                        disabled={loading || !roadGraph}
+                        onClick={handleTryHarder}
+                        type="button"
+                      >
+                        Try harder
+                      </button>
+                    </div>
+                  )}
+                {routeSummary.triedHarder &&
+                  routeSummary.trafficLightCount === 0 && (
+                    <p className="route-note">
+                      Still no traffic-light route was found for these
+                      addresses.
+                    </p>
+                  )}
                 <p>{routeSummary.message}</p>
               </div>
             )}

@@ -238,7 +238,7 @@ function edgeCost(graph, fromNode, edge, routeMode) {
   return edge.weight * multiplier;
 }
 
-function shortestPath(graph, startKey, endKey, routeMode) {
+function runShortestPaths(graph, startKey, routeMode) {
   const distances = new Map([[startKey, 0]]);
   const actualDistances = new Map([[startKey, 0]]);
   const previous = new Map();
@@ -248,10 +248,6 @@ function shortestPath(graph, startKey, endKey, routeMode) {
 
   while (queue.values.length) {
     const current = queue.pop();
-
-    if (current.key === endKey) {
-      break;
-    }
 
     if (current.priority > (distances.get(current.key) ?? Infinity)) {
       continue;
@@ -274,7 +270,19 @@ function shortestPath(graph, startKey, endKey, routeMode) {
     }
   }
 
-  if (!distances.has(endKey)) {
+  return {
+    actualDistances,
+    distances,
+    previous,
+  };
+}
+
+function reconstructPath(previous, startKey, endKey) {
+  if (startKey === endKey) {
+    return [startKey];
+  }
+
+  if (!previous.has(endKey)) {
     return null;
   }
 
@@ -293,10 +301,21 @@ function shortestPath(graph, startKey, endKey, routeMode) {
 
   keys.reverse();
 
+  return keys;
+}
+
+function shortestPath(graph, startKey, endKey, routeMode) {
+  const result = runShortestPaths(graph, startKey, routeMode);
+  const keys = reconstructPath(result.previous, startKey, endKey);
+
+  if (!keys) {
+    return null;
+  }
+
   return {
-    distance: actualDistances.get(endKey),
+    distance: result.actualDistances.get(endKey),
     keys,
-    score: distances.get(endKey),
+    score: result.distances.get(endKey),
   };
 }
 
@@ -371,6 +390,94 @@ export function buildMunicipalityRoute(graph, start, end, routeMode = "safest") 
     geometry: {
       type: "LineString",
       coordinates,
+    },
+  };
+}
+
+export function buildTrafficLightRoute(graph, start, end) {
+  const snappedStart = findNearestNode(graph, start);
+  const snappedEnd = findNearestNode(graph, end);
+
+  if (!snappedStart.node || !snappedEnd.node) {
+    throw new Error("Municipality road network is empty.");
+  }
+
+  const fromStart = runShortestPaths(
+    graph,
+    snappedStart.node.key,
+    "fastest",
+  );
+  const fromEnd = runShortestPaths(graph, snappedEnd.node.key, "fastest");
+
+  let bestTrafficLightNode = null;
+  let bestDistance = Infinity;
+
+  for (const node of graph.nodes.values()) {
+    if (!node.trafficLight) {
+      continue;
+    }
+
+    const distanceFromStart = fromStart.actualDistances.get(node.key);
+    const distanceFromEnd = fromEnd.actualDistances.get(node.key);
+
+    if (distanceFromStart === undefined || distanceFromEnd === undefined) {
+      continue;
+    }
+
+    const totalDistance = distanceFromStart + distanceFromEnd;
+
+    if (totalDistance < bestDistance) {
+      bestTrafficLightNode = node;
+      bestDistance = totalDistance;
+    }
+  }
+
+  if (!bestTrafficLightNode) {
+    throw new Error("No traffic-light route was found for these addresses.");
+  }
+
+  const pathToTrafficLight = reconstructPath(
+    fromStart.previous,
+    snappedStart.node.key,
+    bestTrafficLightNode.key,
+  );
+  const pathFromTrafficLight = reconstructPath(
+    fromEnd.previous,
+    snappedEnd.node.key,
+    bestTrafficLightNode.key,
+  )?.reverse();
+
+  if (!pathToTrafficLight || !pathFromTrafficLight) {
+    throw new Error("No traffic-light route was found for these addresses.");
+  }
+
+  const pathKeys = [
+    ...pathToTrafficLight,
+    ...pathFromTrafficLight.slice(1),
+  ];
+  const trafficLights = routeTrafficLights(graph, pathKeys);
+
+  if (!trafficLights.length) {
+    throw new Error("No traffic-light route was found for these addresses.");
+  }
+
+  const roadCoordinates = pathKeys.map((key) => {
+    const node = graph.nodes.get(key);
+    return [node.lon, node.lat];
+  });
+
+  return {
+    distanceMeters: bestDistance + snappedStart.distance + snappedEnd.distance,
+    routeMode: "trafficLightsPriority",
+    score: bestDistance,
+    trafficLights,
+    geometry: {
+      type: "LineString",
+      coordinates: [
+        [start.lon, start.lat],
+        ...roadCoordinates,
+        [end.lon, end.lat],
+      ],
     },
   };
 }
