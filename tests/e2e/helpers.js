@@ -1,10 +1,10 @@
 import { expect } from "@playwright/test";
 
-export async function prepareApp(page) {
+export async function prepareApp(page, { geocoderResults = [] } = {}) {
   await page.route("https://nominatim.openstreetmap.org/**", async (route) => {
     await route.fulfill({
       contentType: "application/json",
-      body: "[]",
+      body: JSON.stringify(geocoderResults),
     });
   });
 

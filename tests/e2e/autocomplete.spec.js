@@ -64,13 +64,27 @@ test.describe("autocomplete and language behavior", () => {
     await expectOption(page, "בית ספר אהבת ציון, כהנשטם 16");
   });
 
-  test("street-only input is not routable without a building number", async ({ page }) => {
+  test("street-only input is not routable without a building number even when geocoder returns a street", async ({ page }) => {
+    await page.unroute("https://nominatim.openstreetmap.org/**");
+    await page.route("https://nominatim.openstreetmap.org/**", async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify([
+          {
+            lat: "32.0879",
+            lon: "34.7892",
+            display_name: "נמיר מרדכי, Tel Aviv, Israel",
+          },
+        ]),
+      });
+    });
+
     await fillFrom(page, "נמיר מרדכי");
     await page.getByPlaceholder("Example: Tel Aviv Port").fill("Tel Aviv Port");
     await closeAutocomplete(page);
     await clickFindRoute(page);
 
-    await expect(page.getByText(/Address not found: נמיר מרדכי|full address with building number/)).toBeVisible();
+    await expect(page.getByText("Please enter a full address with building number for נמיר מרדכי.")).toBeVisible();
   });
 
   test("known regression searches remain visible", async ({ page }) => {

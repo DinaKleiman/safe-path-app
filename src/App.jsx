@@ -156,6 +156,18 @@ function estimateWalkingDurationSeconds(distanceMeters) {
   return distanceMeters / WALKING_SPEED_METERS_PER_SECOND;
 }
 
+function isStreetOnlyMunicipalityQuery(address, municipalitySearchIndex) {
+  const normalized = normalizeAddress(address);
+
+  if (/\d+[א-ת]?/.test(normalized)) {
+    return false;
+  }
+
+  return searchMunicipalityPlaces(municipalitySearchIndex, normalized, 5).some(
+    (suggestion) => suggestion.source === "municipality-street",
+  );
+}
+
 async function searchAddressSuggestions(address, signal, municipalitySearchIndex) {
   const normalized = normalizeAddress(address);
 
@@ -426,6 +438,12 @@ export default function App() {
 
     if (municipalityPlace) {
       return municipalityPlace;
+    }
+
+    if (isStreetOnlyMunicipalityQuery(address, municipalitySearchIndex)) {
+      throw new Error(
+        `Please enter a full address with building number for ${address}.`,
+      );
     }
 
     const queries = buildGeocodeQueries(address);
