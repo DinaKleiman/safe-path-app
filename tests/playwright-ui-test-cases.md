@@ -20,6 +20,14 @@ Current status: planned, unless marked otherwise. A few autocomplete checks were
 - PW-AUTO-010: Street-only suggestion is not treated as a routable address
 - PW-AUTO-011: Address autocomplete ranking is acceptable for known regression streets
 
+### Language Behavior Tests
+
+- PW-LANG-001: Hebrew input returns Hebrew municipality suggestions
+- PW-LANG-002: English input returns English municipality suggestions
+- PW-LANG-003: Hebrew quote marks and regular quotes behave the same
+- PW-LANG-004: English apostrophes and missing apostrophes behave the same
+- PW-LANG-005: External English geocoder does not replace good Hebrew municipality results
+
 ### Web Route Tests
 
 - PW-WEB-001: Desktop app loads
@@ -65,6 +73,17 @@ Current status: planned, unless marked otherwise. A few autocomplete checks were
 - PW-MOB-006: Mobile result text wraps without overlap
 - PW-MOB-007: Mobile map remains visible after route calculation
 
+### Regression Tests
+
+- PW-REG-001: `נמי` shows `נמיר מרדכי`
+- PW-REG-002: `nami` shows `NAMIR`
+- PW-REG-003: `אד״ם` shows `אד"ם הכהן`
+- PW-REG-004: `בית ספר אהבת ציון` resolves as school
+- PW-REG-005: `בה״ס גרץ` resolves as school, not street
+- PW-REG-006: `אהבת ציון` without prefix or house number does not route
+- PW-REG-007: `משה שרת 80` resolves to `שרת משה 80`
+- PW-REG-008: `בן יהודה` ranking is checked with progressively longer prefixes
+
 ## Autocomplete Tests
 
 | ID | Area | Scenario | Steps | Expected Result | Status |
@@ -80,6 +99,16 @@ Current status: planned, unless marked otherwise. A few autocomplete checks were
 | PW-AUTO-009 | Autocomplete | No prefix and no house number asks for full address | Type `אהבת ציון` and click Find route. | App asks for a full address with building number or school prefix. | Planned |
 | PW-AUTO-010 | Autocomplete | Street-only suggestion is not treated as a routable address | Select or type `נמיר מרדכי` without house number and click Find route. | App does not route and asks for a full address. | Planned |
 | PW-AUTO-011 | Autocomplete | Address autocomplete ranking is acceptable for known regression streets | Type progressively longer prefixes for `בן יהודה`, `קהילת ריגה`, and `קהילת פוזנא`. | Expected street appears once enough characters are typed; ranking behavior is documented. | Planned |
+
+## Language Behavior Tests
+
+| ID | Area | Scenario | Steps | Expected Result | Status |
+| --- | --- | --- | --- | --- | --- |
+| PW-LANG-001 | Language | Hebrew input returns Hebrew municipality suggestions | Type `נמי`, `אדם`, and `החש` in From field. | Suggestions are Hebrew names such as `נמיר מרדכי`, `אד"ם הכהן`, and `החשמונאים`. | Manual spot check passed |
+| PW-LANG-002 | Language | English input returns English municipality suggestions | Type `nami`, `adam`, and `ha-h` in From field. | Suggestions are English names such as `NAMIR`, `ADAM HAKOHEN`, and `HA-HASHMONA'IM`. | Manual spot check passed |
+| PW-LANG-003 | Language | Hebrew quote marks and regular quotes behave the same | Type `אדם`, `אד"ם`, and `אד״ם`. | All variants show or resolve to `אד"ם הכהן`. | Manual spot check passed |
+| PW-LANG-004 | Language | English apostrophes and missing apostrophes behave the same | Type `YIG'AL ALLON` and `YIGAL ALLON`. | Both variants show or resolve to `YIG'AL ALLON`. | Planned |
+| PW-LANG-005 | Language | External English geocoder does not replace good Hebrew municipality results | Type a Hebrew municipality match such as `בית ספר אהבת ציון`. | Local municipality school/address result appears before external geocoder results. | Planned |
 
 ## Web Route Tests
 
@@ -135,3 +164,16 @@ Current status: planned, unless marked otherwise. A few autocomplete checks were
 | PW-MOB-005 | Route | Mobile route calculation works | Calculate `משה שרת 80` to `Tel Aviv Port`. | Route result is visible and readable. | Planned |
 | PW-MOB-006 | Text | Mobile result text wraps without overlap | Check result panel after route calculation. | Distance, time, mode, and traffic-light count do not overlap. | Planned |
 | PW-MOB-007 | Map | Mobile map remains visible after route calculation | Calculate route and inspect map area. | Map remains visible and route status updates. | Planned |
+
+## Regression Tests
+
+| ID | Area | Scenario | Steps | Expected Result | Status |
+| --- | --- | --- | --- | --- | --- |
+| PW-REG-001 | Regression | `נמי` shows `נמיר מרדכי` | Type `נמי` in From field. | `נמיר מרדכי` appears as a street option. | Manual spot check passed |
+| PW-REG-002 | Regression | `nami` shows `NAMIR` | Type `nami` in From field. | `NAMIR` appears as a street option. | Manual spot check passed |
+| PW-REG-003 | Regression | `אד״ם` shows `אד"ם הכהן` | Type `אד״ם` in From field. | `אד"ם הכהן` appears as a street option, and saved school/place can also appear. | Manual spot check passed |
+| PW-REG-004 | Regression | `בית ספר אהבת ציון` resolves as school | Type `בית ספר אהבת ציון`. | School result appears as `בית ספר אהבת ציון, כהנשטם 16`. | Planned |
+| PW-REG-005 | Regression | `בה״ס גרץ` resolves as school, not street | Type `בה״ס גרץ`. | Result is `בית הספר גרץ, אד"ם הכהן, תל אביב` or current school dataset equivalent, not `רחוב גרץ`. | Planned |
+| PW-REG-006 | Regression | `אהבת ציון` without prefix or house number does not route | Type `אהבת ציון` and click Find route. | App asks for school prefix or full address with building number. | Planned |
+| PW-REG-007 | Regression | `משה שרת 80` resolves to `שרת משה 80` | Type `משה שרת 80` and select/submit. | Municipality address resolves as `שרת משה 80`. | Planned |
+| PW-REG-008 | Regression | `בן יהודה` ranking is checked with progressively longer prefixes | Type `בן`, `בן י`, and `בן יהודה`. | Expected street appears once enough characters are typed; ranking behavior is documented. | Planned |
