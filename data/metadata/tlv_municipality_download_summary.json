@@ -13,5 +13,110 @@
     "layer_id": 836,
     "file": "data/raw/tel_aviv_intersections_836_raw.geojson",
     "feature_count": 5263
+  },
+  {
+    "layer_id": 527,
+    "file": "data/raw/tel_aviv_addresses_527_raw.geojson",
+    "feature_count": 52175
+  },
+  {
+    "layer_id": 597,
+    "file": "data/raw/tel_aviv_place_names_hebrew_597_raw.geojson",
+    "feature_count": 401
+  },
+  {
+    "layer_id": 843,
+    "file": "data/raw/tel_aviv_selected_buildings_843_raw.geojson",
+    "feature_count": 45895
+  },
+  {
+    "layer_id": 513,
+    "file": "data/raw/tel_aviv_buildings_513_raw.geojson",
+    "feature_count": 45895
+  },
+  {
+    "layer_id": 925,
+    "file": "data/raw/tel_aviv_businesses_925_raw.geojson",
+    "feature_count": 37442
+  },
+  {
+    "layer_id": 964,
+    "file": "data/raw/tel_aviv_licensed_businesses_964_raw.geojson",
+    "feature_count": 22179
+  },
+  {
+    "layer_id": 563,
+    "file": "data/raw/tel_aviv_health_funds_563_raw.geojson",
+    "feature_count": 63
+  },
+  {
+    "layer_id": 565,
+    "file": "data/raw/tel_aviv_medical_institutions_565_raw.geojson",
+    "feature_count": 47
+  },
+  {
+    "layer_id": 564,
+    "file": "data/raw/tel_aviv_pharmacies_564_raw.geojson",
+    "feature_count": 122
+  },
+  {
+    "layer_id": 769,
+    "file": "data/raw/tel_aviv_schools_769_raw.geojson",
+    "feature_count": 216
+  },
+  {
+    "layer_id": 768,
+    "file": "data/raw/tel_aviv_kindergartens_768_raw.geojson",
+    "feature_count": 551
+  },
+  {
+    "layer_id": 745,
+    "file": "data/raw/tel_aviv_culture_institutions_745_raw.geojson",
+    "feature_count": 136
+  },
+  {
+    "layer_id": 553,
+    "file": "data/raw/tel_aviv_community_institutions_553_raw.geojson",
+    "feature_count": 80
+  },
+  {
+    "layer_id": 404,
+    "file": "data/raw/tel_aviv_heritage_sites_404_raw.geojson",
+    "feature_count": 16
+  },
+  {
+    "layer_id": 937,
+    "file": "data/raw/tel_aviv_gyms_937_raw.geojson",
+    "feature_count": 78
+  },
+  {
+    "layer_id": 936,
+    "file": "data/raw/tel_aviv_stadiums_sport_halls_936_raw.geojson",
+    "feature_count": 6
+  },
+  {
+    "layer_id": 939,
+    "file": "data/raw/tel_aviv_swimming_pools_939_raw.geojson",
+    "feature_count": 42
+  },
+  {
+    "layer_id": 556,
+    "file": "data/raw/tel_aviv_public_parking_556_raw.geojson",
+    "feature_count": 249
+  },
+  {
+    "layer_id": 956,
+    "file": "data/raw/tel_aviv_bus_stops_956_raw.geojson",
+    "feature_count": 1259
+  },
+  {
+    "layer_id": 577,
+    "file": "data/raw/tel_aviv_bike_lanes_577_raw.geojson",
+    "feature_count": 485
+  },
+  {
+    "layer_id": 406,
+    "file": "data/raw/neighboring_authorities_bike_lanes_406_raw.geojson",
+    "feature_count": 183
   }
 ]

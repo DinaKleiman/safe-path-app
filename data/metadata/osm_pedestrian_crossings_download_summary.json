@@ -1,0 +1,182 @@
+{
+  "source": "OpenStreetMap Overpass API",
+  "file": "data/raw/osm_pedestrian_crossings_tel_aviv_raw.geojson",
+  "feature_count": 4159,
+  "bounds": {
+    "min_lat": 32.02,
+    "min_lon": 34.73,
+    "max_lat": 32.16,
+    "max_lon": 34.86
+  },
+  "queries": [
+    "node[\"highway\"=\"crossing\"]",
+    "node[\"crossing\"=\"traffic_signals\"]",
+    "node[\"crossing:signals\"=\"yes\"]",
+    "way[\"highway\"=\"footway\"][\"footway\"=\"crossing\"]",
+    "way[\"highway\"=\"crossing\"]",
+    "way[\"crossing\"=\"traffic_signals\"]",
+    "way[\"crossing:signals\"=\"yes\"]"
+  ],
+  "tiles": [
+    {
+      "tile": 1,
+      "bounds": [
+        32.02,
+        34.73,
+        32.055,
+        34.762499999999996
+      ],
+      "elements": 834
+    },
+    {
+      "tile": 2,
+      "bounds": [
+        32.02,
+        34.762499999999996,
+        32.055,
+        34.795
+      ],
+      "elements": 0
+    },
+    {
+      "tile": 3,
+      "bounds": [
+        32.02,
+        34.795,
+        32.055,
+        34.8275
+      ],
+      "elements": 152
+    },
+    {
+      "tile": 4,
+      "bounds": [
+        32.02,
+        34.8275,
+        32.055,
+        34.86
+      ],
+      "elements": 222
+    },
+    {
+      "tile": 5,
+      "bounds": [
+        32.055,
+        34.73,
+        32.09,
+        34.762499999999996
+      ],
+      "elements": 0
+    },
+    {
+      "tile": 6,
+      "bounds": [
+        32.055,
+        34.762499999999996,
+        32.09,
+        34.795
+      ],
+      "elements": 1609
+    },
+    {
+      "tile": 7,
+      "bounds": [
+        32.055,
+        34.795,
+        32.09,
+        34.8275
+      ],
+      "elements": 0
+    },
+    {
+      "tile": 8,
+      "bounds": [
+        32.055,
+        34.8275,
+        32.09,
+        34.86
+      ],
+      "elements": 243
+    },
+    {
+      "tile": 9,
+      "bounds": [
+        32.09,
+        34.73,
+        32.125,
+        34.762499999999996
+      ],
+      "elements": 0
+    },
+    {
+      "tile": 10,
+      "bounds": [
+        32.09,
+        34.762499999999996,
+        32.125,
+        34.795
+      ],
+      "elements": 0
+    },
+    {
+      "tile": 11,
+      "bounds": [
+        32.09,
+        34.795,
+        32.125,
+        34.8275
+      ],
+      "elements": 363
+    },
+    {
+      "tile": 12,
+      "bounds": [
+        32.09,
+        34.8275,
+        32.125,
+        34.86
+      ],
+      "elements": 205
+    },
+    {
+      "tile": 13,
+      "bounds": [
+        32.125,
+        34.73,
+        32.16,
+        34.762499999999996
+      ],
+      "elements": 0
+    },
+    {
+      "tile": 14,
+      "bounds": [
+        32.125,
+        34.762499999999996,
+        32.16,
+        34.795
+      ],
+      "elements": 48
+    },
+    {
+      "tile": 15,
+      "bounds": [
+        32.125,
+        34.795,
+        32.16,
+        34.8275
+      ],
+      "elements": 184
+    },
+    {
+      "tile": 16,
+      "bounds": [
+        32.125,
+        34.8275,
+        32.16,
+        34.86
+      ],
+      "elements": 300
+    }
+  ]
+}
