@@ -84,6 +84,12 @@ Current status: planned, unless marked otherwise. A few autocomplete checks were
 - PW-REG-007: `משה שרת 80` resolves to `שרת משה 80`
 - PW-REG-008: `בן יהודה` ranking is checked with progressively longer prefixes
 
+### Google Maps Benchmark Tests
+
+- PW-GMAP-001: App `Prefer traffic lights` distance is compared with Google Maps walking distance
+- PW-GMAP-002: App route longer than Google walking is reported as a negative percentage and fails
+- PW-GMAP-003: Mixed case set includes streets, schools, and local places
+
 ## Autocomplete Tests
 
 | ID | Area | Scenario | Steps | Expected Result | Status |
@@ -177,3 +183,13 @@ Current status: planned, unless marked otherwise. A few autocomplete checks were
 | PW-REG-006 | Regression | `אהבת ציון` without prefix or house number does not route | Type `אהבת ציון` and click Find route. | App asks for school prefix or full address with building number. | Planned |
 | PW-REG-007 | Regression | `משה שרת 80` resolves to `שרת משה 80` | Type `משה שרת 80` and select/submit. | Municipality address resolves as `שרת משה 80`. | Planned |
 | PW-REG-008 | Regression | `בן יהודה` ranking is checked with progressively longer prefixes | Type `בן`, `בן י`, and `בן יהודה`. | Expected street appears once enough characters are typed; ranking behavior is documented. | Planned |
+
+## Google Maps Benchmark Tests
+
+These tests are automated but intentionally separate from the normal app UI suite because they depend on Google Maps UI text and network access.
+
+| ID | Area | Scenario | Steps | Expected Result | Status |
+| --- | --- | --- | --- | --- | --- |
+| PW-GMAP-001 | Benchmark | App `Prefer traffic lights` distance is compared with Google Maps walking distance | Run `npm run test:benchmark:google`. | Test opens Google Maps walking routes for mixed Tel Aviv cases and compares against app `Prefer traffic lights` distance. | Automated |
+| PW-GMAP-002 | Benchmark | Negative percentage means failure | For each case, calculate `(Google walking - App prefer traffic lights) / Google walking`. | If the app route is longer than Google walking, the percent is negative and the benchmark fails. | Automated |
+| PW-GMAP-003 | Benchmark | Mixed case coverage | Use streets with building numbers, schools, and known local places. | Benchmark covers more than one address/entity type. | Automated |

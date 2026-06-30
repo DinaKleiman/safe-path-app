@@ -14,12 +14,45 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe("autocomplete and language behavior", () => {
+  test("one-character input does not show suggestions", async ({ page }) => {
+    await fillFrom(page, "נ");
+
+    await expect(page.getByRole("option")).toHaveCount(0);
+  });
+
   test("Hebrew and English street prefixes show matching municipality street options", async ({ page }) => {
     await fillFrom(page, "נמי");
     await expectOption(page, "נמיר מרדכי");
 
     await fillFrom(page, "nami");
     await expectOption(page, "NAMIR");
+  });
+
+  test("Hebrew local results are not filled with English external suggestions", async ({ page }) => {
+    await page.unroute("https://nominatim.openstreetmap.org/**");
+    await page.route("https://nominatim.openstreetmap.org/**", async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify([
+          {
+            lat: "32.064",
+            lon: "34.856",
+            display_name:
+              "Ne'omi Shemer, Shchunat HaAcademaim, Or Yehuda, Tel Aviv District, Israel",
+          },
+          {
+            lat: "32.087",
+            lon: "34.789",
+            display_name: "NAMIR, Tel Aviv, Israel",
+          },
+        ]),
+      });
+    });
+
+    await fillFrom(page, "נמי");
+    await expectOption(page, "נמיר מרדכי");
+    await expect(page.getByRole("option").filter({ hasText: "Ne'omi" })).toHaveCount(0);
+    await expect(page.getByRole("option").filter({ hasText: "NAMIR" })).toHaveCount(0);
   });
 
   test("multi-word streets appear in Hebrew and English", async ({ page }) => {
@@ -80,6 +113,15 @@ test.describe("autocomplete and language behavior", () => {
     });
 
     await fillFrom(page, "נמיר מרדכי");
+    await expect(page.getByText("Enter building number")).toBeVisible();
+
+    await fillFrom(page, "נמיר מרדכי 10");
+    await expect(page.getByText("Enter building number")).toHaveCount(0);
+
+    await fillFrom(page, "Namir");
+    await expect(page.getByText("Enter building number")).toBeVisible();
+
+    await fillFrom(page, "נמיר מרדכי");
     await page.getByPlaceholder("Example: Tel Aviv Port").fill("Tel Aviv Port");
     await closeAutocomplete(page);
     await clickFindRoute(page);
@@ -103,5 +145,28 @@ test.describe("autocomplete and language behavior", () => {
     await optionByText(page, "נמיר מרדכי").first().click();
 
     await expect(fromInput(page)).toHaveValue("נמיר מרדכי");
+  });
+
+  test("keyboard navigation selects autocomplete options", async ({ page }) => {
+    await fillFrom(page, "נמי");
+    await expectOption(page, "נמיר מרדכי");
+
+    await fromInput(page).press("ArrowDown");
+    await expect(optionByText(page, "נמיר מרדכי").first()).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    await fromInput(page).press("Enter");
+    await expect(fromInput(page)).toHaveValue("נמיר מרדכי");
+    await expect(page.getByRole("option")).toHaveCount(0);
+  });
+
+  test("escape closes autocomplete suggestions", async ({ page }) => {
+    await fillFrom(page, "נמי");
+    await expectOption(page, "נמיר מרדכי");
+
+    await fromInput(page).press("Escape");
+    await expect(page.getByRole("option")).toHaveCount(0);
   });
 });

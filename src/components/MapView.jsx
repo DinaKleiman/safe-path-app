@@ -32,6 +32,15 @@ function trafficLightPoint(feature, latlng) {
   });
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function trafficLightPopup(feature, layer) {
   const p = feature.properties || {};
   const name =
@@ -41,7 +50,7 @@ function trafficLightPopup(feature, layer) {
     "Traffic light";
 
   layer.bindPopup(`
-    <b>${name}</b><br/>
+    <b>${escapeHtml(name)}</b><br/>
     Traffic-light location from municipality layer: צמתים מרומזרים
   `);
 }
@@ -154,9 +163,13 @@ export default function MapView({ route }) {
 
       {error && <div className="map-error">Error: {error}</div>}
 
-      <MapContainer center={TEL_AVIV_CENTER} zoom={13} className="map">
+      <MapContainer
+        attributionControl={false}
+        center={TEL_AVIV_CENTER}
+        zoom={13}
+        className="map"
+      >
         <TileLayer
-          attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 

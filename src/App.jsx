@@ -91,6 +91,14 @@ function normalizeHebrewAddress(address) {
     .replace(/[״"]/g, '"');
 }
 
+function hasHebrewText(value) {
+  return /[\u0590-\u05ff]/.test(String(value ?? ""));
+}
+
+function hasLatinText(value) {
+  return /[a-z]/i.test(String(value ?? ""));
+}
+
 function getLocalFallback(address) {
   const normalized = normalizeHebrewAddress(address);
   const fallback = LOCAL_PLACE_FALLBACKS.find((item) => item.match(normalized));
@@ -142,6 +150,32 @@ function isInTelAvivBounds(result) {
   );
 }
 
+function isTelAvivDisplayName(result) {
+  return /tel[\s-]?aviv|תל\s*אביב|תל-אביב/i.test(result.display_name || "");
+}
+
+function matchesInputLanguage(result, address) {
+  const displayName = result.display_name || "";
+
+  if (hasHebrewText(address)) {
+    return hasHebrewText(displayName);
+  }
+
+  if (hasLatinText(address)) {
+    return hasLatinText(displayName);
+  }
+
+  return true;
+}
+
+function isUsableExternalSuggestion(result, address) {
+  return (
+    isInTelAvivBounds(result) &&
+    isTelAvivDisplayName(result) &&
+    matchesInputLanguage(result, address)
+  );
+}
+
 function toSuggestion(result, matchedQuery) {
   return {
     lat: Number(result.lat),
@@ -179,6 +213,11 @@ async function searchAddressSuggestions(address, signal, municipalitySearchIndex
     ...getLocalSuggestions(normalized),
     ...searchMunicipalityPlaces(municipalitySearchIndex, normalized),
   ];
+
+  if (localSuggestions.length && hasHebrewText(normalized)) {
+    return localSuggestions.slice(0, 5);
+  }
+
   const queries = buildGeocodeQueries(normalized);
   const externalSuggestions = [];
   const seen = new Set(localSuggestions.map((item) => item.displayName));
@@ -208,7 +247,9 @@ async function searchAddressSuggestions(address, signal, municipalitySearchIndex
 
       const data = await response.json();
 
-      for (const result of data.filter(isInTelAvivBounds)) {
+      for (const result of data.filter((item) =>
+        isUsableExternalSuggestion(item, normalized),
+      )) {
         if (seen.has(result.display_name)) {
           continue;
         }
@@ -243,6 +284,7 @@ function AddressField({
   const [suggestions, setSuggestions] = useState([]);
   const [status, setStatus] = useState("idle");
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const listId = useMemo(() => `${id}-suggestions`, [id]);
 
   useEffect(() => {
@@ -251,6 +293,7 @@ function AddressField({
     if (normalized.length < MIN_AUTOCOMPLETE_LENGTH) {
       setSuggestions([]);
       setStatus("idle");
+      setActiveIndex(-1);
       return undefined;
     }
 
@@ -265,10 +308,12 @@ function AddressField({
         );
 
         setSuggestions(results);
+        setActiveIndex(-1);
         setStatus(results.length ? "found" : "empty");
       } catch (error) {
         if (error.name !== "AbortError") {
           setSuggestions([]);
+          setActiveIndex(-1);
           setStatus("error");
         }
       }
@@ -283,17 +328,27 @@ function AddressField({
   function handleSelect(suggestion) {
     onChange(suggestion.displayName);
     setSuggestions([]);
+    setActiveIndex(-1);
     setOpen(false);
     setStatus("found");
   }
 
   const showSuggestions = open && (status !== "idle" || suggestions.length > 0);
+  const activeSuggestionId =
+    showSuggestions && activeIndex >= 0
+      ? `${listId}-option-${activeIndex}`
+      : undefined;
+  const showBuildingNumberHint = isStreetOnlyMunicipalityQuery(
+    value,
+    municipalitySearchIndex,
+  ) && !getLocalFallback(value);
 
   return (
     <label className="field address-field">
       {label}
       <input
         aria-autocomplete="list"
+        aria-activedescendant={activeSuggestionId}
         aria-controls={listId}
         aria-expanded={showSuggestions}
         autoComplete="off"
@@ -304,8 +359,43 @@ function AddressField({
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown") {
+            if (!suggestions.length) return;
+            event.preventDefault();
+            setOpen(true);
+            setActiveIndex((currentIndex) =>
+              currentIndex < suggestions.length - 1 ? currentIndex + 1 : 0,
+            );
+          }
+
+          if (event.key === "ArrowUp") {
+            if (!suggestions.length) return;
+            event.preventDefault();
+            setOpen(true);
+            setActiveIndex((currentIndex) =>
+              currentIndex > 0 ? currentIndex - 1 : suggestions.length - 1,
+            );
+          }
+
+          if (event.key === "Enter" && showSuggestions && activeIndex >= 0) {
+            event.preventDefault();
+            handleSelect(suggestions[activeIndex]);
+          }
+
+          if (event.key === "Escape") {
+            setOpen(false);
+            setActiveIndex(-1);
+          }
+        }}
         placeholder={placeholder}
       />
+
+      {showBuildingNumberHint && (
+        <div className="field-hint" role="status">
+          Enter building number
+        </div>
+      )}
 
       {showSuggestions && (
         <div className="suggestion-panel" id={listId} role="listbox">
@@ -323,11 +413,14 @@ function AddressField({
             <div className="suggestion-status">Address check is unavailable</div>
           )}
 
-          {suggestions.map((suggestion) => (
+          {suggestions.map((suggestion, index) => (
             <button
+              aria-selected={index === activeIndex}
               className="suggestion-option"
+              id={`${listId}-option-${index}`}
               key={`${suggestion.source}-${suggestion.lat}-${suggestion.lon}-${suggestion.displayName}`}
               onMouseDown={(event) => event.preventDefault()}
+              onMouseEnter={() => setActiveIndex(index)}
               onClick={() => handleSelect(suggestion)}
               role="option"
               type="button"
@@ -366,9 +459,14 @@ export default function App() {
   useEffect(() => {
     async function loadRoadNetwork() {
       try {
-        const [roadsResponse, signalsResponse] = await Promise.all([
+        const [
+          roadsResponse,
+          signalsResponse,
+          pedestrianCrossingsResponse,
+        ] = await Promise.all([
           fetch("/data/roads.geojson"),
           fetch("/data/signalized_intersections.geojson"),
+          fetch("/data/pedestrian_crossings.geojson"),
         ]);
 
         if (!roadsResponse.ok) {
@@ -381,9 +479,14 @@ export default function App() {
           );
         }
 
+        if (!pedestrianCrossingsResponse.ok) {
+          throw new Error("Could not load pedestrian_crossings.geojson");
+        }
+
         const roads = await roadsResponse.json();
         const signals = await signalsResponse.json();
-        setRoadGraph(buildRoadGraph(roads, signals));
+        const pedestrianCrossings = await pedestrianCrossingsResponse.json();
+        setRoadGraph(buildRoadGraph(roads, signals, pedestrianCrossings));
         setRoadGraphError("");
       } catch (error) {
         setRoadGraphError(error.message);
@@ -529,6 +632,11 @@ export default function App() {
         routeMode: municipalityRoute.routeMode,
         trafficLightCount: municipalityRoute.trafficLights.length,
         trafficLights: municipalityRoute.trafficLights,
+        pedestrianCrossingCount: municipalityRoute.pedestrianCrossings.length,
+        signalizedCrossingCount: municipalityRoute.signalizedCrossingCount,
+        unsignalizedCrossingCount: municipalityRoute.unsignalizedCrossingCount,
+        crossingPreferenceLimited:
+          municipalityRoute.crossingPreferenceLimited,
       },
       geometry: municipalityRoute.geometry,
     };
@@ -557,8 +665,16 @@ export default function App() {
         source: walkingRoute.properties.source,
         routeMode: mode,
         trafficLightCount: walkingRoute.properties.trafficLightCount,
+        pedestrianCrossingCount:
+          walkingRoute.properties.pedestrianCrossingCount,
+        signalizedCrossingCount:
+          walkingRoute.properties.signalizedCrossingCount,
+        unsignalizedCrossingCount:
+          walkingRoute.properties.unsignalizedCrossingCount,
+        crossingPreferenceLimited:
+          walkingRoute.properties.crossingPreferenceLimited,
         message:
-          "Route is calculated from Tel Aviv municipality roads.geojson and traffic-light data.",
+          "This route partly uses open-source pedestrian crossing data and may contain mismatches.",
         ...extraSummary,
       });
     } catch (error) {
@@ -574,10 +690,24 @@ export default function App() {
     await calculateRoute();
   }
 
-  async function handleTryHarder() {
+  function handleTryHarder() {
+    setRouteSummary((currentSummary) => ({
+      ...currentSummary,
+      needsLongRouteConfirmation: true,
+    }));
+  }
+
+  async function handleDoItAnyway() {
     await calculateRoute("trafficLightsPriority", {
       triedHarder: true,
     });
+  }
+
+  function handleCancelLongRoute() {
+    setRouteSummary((currentSummary) => ({
+      ...currentSummary,
+      needsLongRouteConfirmation: false,
+    }));
   }
 
   return (
@@ -689,12 +819,21 @@ export default function App() {
                   <strong>Traffic lights on route:</strong>{" "}
                   {routeSummary.trafficLightCount}
                 </p>
+                <p>
+                  <strong>Signalized pedestrian crossings:</strong>{" "}
+                  {routeSummary.signalizedCrossingCount}
+                </p>
+                <p>
+                  <strong>Non-signalized pedestrian crossings:</strong>{" "}
+                  {routeSummary.unsignalizedCrossingCount}
+                </p>
                 {routeSummary.routeMode === "safest" &&
-                  routeSummary.trafficLightCount === 0 && (
+                  routeSummary.crossingPreferenceLimited &&
+                  routeSummary.signalizedCrossingCount === 0 && (
                     <div className="route-note">
                       <p>
-                        No traffic-light crossings were found on this route.
-                        You can try a larger detour.
+                        No better traffic-light crossing route was found within
+                        adding reasonable distance.
                       </p>
                       <button
                         className="secondary-button"
@@ -704,13 +843,34 @@ export default function App() {
                       >
                         Try harder
                       </button>
+                      {routeSummary.needsLongRouteConfirmation && (
+                        <div className="route-confirmation">
+                          <p>This can significantly lengthen the path.</p>
+                          <button
+                            className="secondary-button"
+                            disabled={loading || !roadGraph}
+                            onClick={handleDoItAnyway}
+                            type="button"
+                          >
+                            Do it anyway
+                          </button>
+                          <button
+                            className="secondary-button"
+                            disabled={loading}
+                            onClick={handleCancelLongRoute}
+                            type="button"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 {routeSummary.triedHarder &&
-                  routeSummary.trafficLightCount === 0 && (
+                  routeSummary.unsignalizedCrossingCount > 0 && (
                     <p className="route-note">
-                      Still no traffic-light route was found for these
-                      addresses.
+                      Please note: this route may still include crossings
+                      without traffic lights.
                     </p>
                   )}
                 <p>{routeSummary.message}</p>

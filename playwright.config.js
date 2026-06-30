@@ -24,7 +24,7 @@ export default defineConfig({
   projects: [
     {
       name: "desktop",
-      testIgnore: /.*mobile\.spec\.js/,
+      testIgnore: [/.*mobile\.spec\.js/, /.*google-maps-benchmark\.spec\.js/],
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1280, height: 900 },
@@ -35,6 +35,14 @@ export default defineConfig({
       testMatch: /.*mobile\.spec\.js/,
       use: {
         ...devices["Pixel 7"],
+      },
+    },
+    {
+      name: "google-maps-benchmark",
+      testMatch: /.*google-maps-benchmark\.spec\.js/,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1280, height: 900 },
       },
     },
   ],

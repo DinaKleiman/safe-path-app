@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "oxlint",
     "test": "vitest run",
+    "test:benchmark:google": "RUN_GOOGLE_MAPS_BENCHMARK=1 playwright test --project=google-maps-benchmark",
     "test:e2e": "playwright test",
     "test:e2e:local": "PLAYWRIGHT_SKIP_WEBSERVER=1 playwright test",
     "test:e2e:ui": "playwright test --ui",

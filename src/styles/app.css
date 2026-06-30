@@ -85,6 +85,13 @@
   outline: 3px solid rgba(37, 99, 235, 0.18);
 }
 
+.field-hint {
+  color: #8a5a00;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
 .address-field {
   position: relative;
 }
@@ -260,6 +267,17 @@
 
 .route-note p {
   margin: 0;
+}
+
+.route-confirmation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.route-confirmation p {
+  flex-basis: 100%;
 }
 
 .error-text,

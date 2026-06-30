@@ -38,18 +38,30 @@ test.describe("desktop route UI", () => {
     await expect(page.getByText(/Estimated walking time:\s+\d+ min/)).toBeVisible();
     await expect(page.getByText("Route mode: Fastest")).toBeVisible();
     await expect(page.getByText(/Traffic lights on route:\s+\d+/)).toBeVisible();
+    await expect(page.getByText(/Signalized pedestrian crossings:\s+\d+/)).toBeVisible();
+    await expect(page.getByText(/Non-signalized pedestrian crossings:\s+\d+/)).toBeVisible();
     await expect(page.getByText("Route: shown")).toBeVisible();
   });
 
   test("prefer traffic lights route has more traffic lights than fastest for known A/B", async ({ page }) => {
     await calculateRoute(page, "משה שרת 80", "Tel Aviv Port", "fastest");
     const fastestLights = Number(await routeMetric(page, "Traffic lights on route"));
+    const fastestSignalizedCrossings = Number(
+      await routeMetric(page, "Signalized pedestrian crossings"),
+    );
 
     await calculateRoute(page, "משה שרת 80", "Tel Aviv Port", "safest");
     const saferLights = Number(await routeMetric(page, "Traffic lights on route"));
+    const saferSignalizedCrossings = Number(
+      await routeMetric(page, "Signalized pedestrian crossings"),
+    );
 
     expect(saferLights).toBeGreaterThan(fastestLights);
+    expect(saferSignalizedCrossings).toBeGreaterThan(
+      fastestSignalizedCrossings,
+    );
     await expect(page.getByText("Route mode: Prefer traffic lights")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Try harder" })).toHaveCount(0);
   });
 
   test("missing address validation is visible", async ({ page }) => {
@@ -69,12 +81,16 @@ test.describe("desktop route UI", () => {
   test("Try harder recalculates a route through traffic lights when available", async ({ page }) => {
     await calculateRoute(page, "שרת משה 84", "בלקינד 1", "safest");
 
-    await expect(page.getByText("No traffic-light crossings were found on this route.")).toBeVisible();
+    await expect(page.getByText("No better traffic-light crossing route was found within adding reasonable distance.")).toBeVisible();
     await page.getByRole("button", { name: "Try harder" }).click();
+    await expect(page.getByText("This can significantly lengthen the path.")).toBeVisible();
+    await page.getByRole("button", { name: "Do it anyway" }).click();
 
     await expect(page.getByText("Route mode: Try harder")).toBeVisible();
-    const tryHarderLights = Number(await routeMetric(page, "Traffic lights on route"));
-    expect(tryHarderLights).toBeGreaterThan(0);
+    const tryHarderSignalizedCrossings = Number(
+      await routeMetric(page, "Signalized pedestrian crossings"),
+    );
+    expect(tryHarderSignalizedCrossings).toBeGreaterThan(0);
   });
 });
 
@@ -87,5 +103,6 @@ test.describe("map rendering", () => {
     await expect(page.locator(".leaflet-overlay-pane svg path").first()).toBeVisible();
     await expect(page.getByText("Traffic lights: 495")).toBeVisible();
     await expect(page.getByText(/Route traffic lights:\s+\d+/)).toBeVisible();
+    await expect(page.locator(".leaflet-control-attribution")).toHaveCount(0);
   });
 });
