@@ -633,6 +633,10 @@ export default function App() {
         trafficLightCount: municipalityRoute.trafficLights.length,
         trafficLights: municipalityRoute.trafficLights,
         pedestrianCrossingCount: municipalityRoute.pedestrianCrossings.length,
+        possibleCrossingMismatchCount:
+          municipalityRoute.possibleCrossingMismatchCount,
+        possibleCrossingMismatches:
+          municipalityRoute.possibleCrossingMismatches,
         signalizedCrossingCount: municipalityRoute.signalizedCrossingCount,
         unsignalizedCrossingCount: municipalityRoute.unsignalizedCrossingCount,
         crossingPreferenceLimited:
@@ -667,6 +671,8 @@ export default function App() {
         trafficLightCount: walkingRoute.properties.trafficLightCount,
         pedestrianCrossingCount:
           walkingRoute.properties.pedestrianCrossingCount,
+        possibleCrossingMismatchCount:
+          walkingRoute.properties.possibleCrossingMismatchCount,
         signalizedCrossingCount:
           walkingRoute.properties.signalizedCrossingCount,
         unsignalizedCrossingCount:
@@ -800,6 +806,7 @@ export default function App() {
 
             {routeSummary && !routeSummary.error && (
               <div>
+                <p className="route-data-warning">{routeSummary.message}</p>
                 <p>
                   <strong>Distance:</strong>{" "}
                   {(routeSummary.distanceMeters / 1000).toFixed(2)} km
@@ -818,6 +825,10 @@ export default function App() {
                 <p>
                   <strong>Traffic lights on route:</strong>{" "}
                   {routeSummary.trafficLightCount}
+                </p>
+                <p>
+                  <strong>Possible crossing-data mismatches:</strong>{" "}
+                  {routeSummary.possibleCrossingMismatchCount}
                 </p>
                 <p>
                   <strong>Signalized pedestrian crossings:</strong>{" "}
@@ -873,7 +884,6 @@ export default function App() {
                       without traffic lights.
                     </p>
                   )}
-                <p>{routeSummary.message}</p>
               </div>
             )}
           </section>

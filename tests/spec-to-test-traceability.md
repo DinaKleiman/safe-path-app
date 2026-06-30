@@ -61,7 +61,7 @@ Latest Google Maps benchmark run:
 | DATA-001 | 3 | `roads.geojson` loads and builds graph | Vitest | `loads valid municipality road and traffic-light datasets`; graph size tests. | Covered / Passing | None. |
 | DATA-002 | 3 | `signalized_intersections.geojson` loads and annotates graph | Vitest + Playwright | Traffic-light file structure, graph annotation, map marker rendering. | Covered / Passing | None. |
 | DATA-003 | 3 | `pedestrian_crossings.geojson` used as crossing helper | Vitest + Playwright | Routing tests use crossing dataset; UI shows crossing-data warning. | Covered / Passing | Add data-integrity test for signalized/non-signalized property distribution. |
-| DATA-004 | 3 | OSM crossing warning is shown when crossing data is used | Playwright | `calculateRoute` helper expects warning text. | Covered / Passing | None. |
+| DATA-004 | 3 | OSM crossing warning and possible mismatch count are shown when crossing data is used | Playwright + Vitest | `calculateRoute` helper expects warning text; routing output includes possible mismatch count and map marker coordinates. | Covered / Passing | None. |
 | DATA-005 | 3 | Nominatim is helper only, not route safety source | Vitest + architecture | Routing tests build route from local graph. | Partial | Add explicit test/mock proving route still calculates from local graph when geocoder is mocked. |
 | DATA-006 | 3 | External routing engines are not safety source | Code review / architecture | No external route engine call is used in current app routing. | Manual | Add static test or architecture check only if external routing code is introduced. |
 
@@ -102,11 +102,12 @@ Latest Google Maps benchmark run:
 
 | ID | Spec Ref | Requirement | Test Type | Current Automated Coverage | Status | Gap / Next Action |
 | --- | --- | --- | --- | --- | --- | --- |
-| UI-001 | 10 | Map shows route line, start, destination, traffic-light markers | Playwright | Map rendering test. | Covered / Passing | Add direct start/destination marker count check if markers become custom DOM. |
+| UI-001 | 10 | Map shows route line, start, destination, traffic-light markers, and yellow mismatch markers when relevant | Playwright + implementation | Map rendering test covers main layers; routing logic exposes mismatch marker coordinates. | Partial | Add direct marker-count assertion for yellow mismatch markers. |
 | UI-002 | 10 | Traffic-light markers look like traffic-light symbols | Playwright | `.traffic-light-marker` visible. | Partial | Add visual/size assertion if icon CSS changes frequently. |
 | UI-003 | 10 | Map does not label all intersections as traffic lights | Playwright + implementation | Map uses `signalized_intersections.geojson`, not intersections layer. | Covered / Passing | None. |
 | UI-004 | 10 | Map attribution labels are not visible | Playwright | Map rendering test asserts `.leaflet-control-attribution` is not present. | Covered / Passing | None. |
-| UI-005 | 11 | Result panel displays required route values | Playwright | Fastest route test checks distance, time, mode, traffic lights, crossing counts. | Covered / Passing | None. |
+| UI-005 | 11 | Result panel displays required route values | Playwright | Fastest route test checks distance, time, mode, traffic lights, possible crossing-data mismatches, and crossing counts. | Covered / Passing | None. |
+| UI-005A | 8, 10, 11 | Yellow mismatch markers are shown only for non-signalized OSM pedestrian crossings and do not hide traffic-light markers | Vitest + planned Playwright | Route metrics verify mismatch count matches non-signalized crossings for known routes; marker layer renders below traffic-light route markers. | Partial | Add Playwright marker-count and z-order visual assertion. |
 | UI-006 | 11 | `Try harder` not shown when route has signalized crossings | Playwright | Prefer-traffic-lights route test asserts the `Try harder` button is absent for a route with signalized crossings. | Covered / Passing | None. |
 | UI-007 | 12 | Missing From/To errors are shown | Playwright | Missing address validation test. | Covered / Passing | None. |
 | UI-008 | 12 | Address not found is clear and route is not drawn | Test docs only | Planned in UI test cases. | Gap | Add Playwright test with mocked empty geocoder and no municipality match. |

@@ -38,6 +38,7 @@ test.describe("desktop route UI", () => {
     await expect(page.getByText(/Estimated walking time:\s+\d+ min/)).toBeVisible();
     await expect(page.getByText("Route mode: Fastest")).toBeVisible();
     await expect(page.getByText(/Traffic lights on route:\s+\d+/)).toBeVisible();
+    await expect(page.getByText(/Possible crossing-data mismatches:\s+\d+/)).toBeVisible();
     await expect(page.getByText(/Signalized pedestrian crossings:\s+\d+/)).toBeVisible();
     await expect(page.getByText(/Non-signalized pedestrian crossings:\s+\d+/)).toBeVisible();
     await expect(page.getByText("Route: shown")).toBeVisible();

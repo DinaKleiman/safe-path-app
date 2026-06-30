@@ -188,7 +188,7 @@ function annotateTrafficLightNodes(graph, trafficLightsGeoJson) {
   }
 }
 
-function isSignalizedPedestrianCrossing(crossing, nearestTrafficLightDistance) {
+function isExplicitSignalizedPedestrianCrossing(crossing) {
   const properties = crossing.properties || {};
   const crossingValue = String(properties.crossing || "").toLowerCase();
   const crossingSignals = String(
@@ -199,7 +199,13 @@ function isSignalizedPedestrianCrossing(crossing, nearestTrafficLightDistance) {
     properties.trafficSignals === true ||
     properties.traffic_signals === true ||
     crossingValue.includes("traffic_signals") ||
-    crossingSignals === "yes" ||
+    crossingSignals === "yes"
+  );
+}
+
+function isSignalizedPedestrianCrossing(crossing, nearestTrafficLightDistance) {
+  return (
+    isExplicitSignalizedPedestrianCrossing(crossing) ||
     nearestTrafficLightDistance <= TRAFFIC_LIGHT_SNAP_METERS
   );
 }
@@ -246,10 +252,17 @@ function annotatePedestrianCrossingNodes(
       nearestCrossing.point,
       nearestTrafficLight.distance,
     );
+    const explicitlySignalized = isExplicitSignalizedPedestrianCrossing(
+      nearestCrossing.point,
+    );
 
     node.pedestrianCrossing = {
       distance: nearestCrossing.distance,
+      mismatchReason: explicitlySignalized
+        ? ""
+        : "Please note: crossing details here may not be fully verified.",
       point: nearestCrossing.point,
+      possibleMismatch: !explicitlySignalized,
       signalized,
     };
   }
@@ -478,6 +491,8 @@ function routePedestrianCrossings(graph, pathKeys) {
     crossings.push({
       lat: node.pedestrianCrossing.point.lat,
       lon: node.pedestrianCrossing.point.lon,
+      mismatchReason: node.pedestrianCrossing.mismatchReason,
+      possibleMismatch: node.pedestrianCrossing.possibleMismatch,
       signalized: node.pedestrianCrossing.signalized,
       properties: node.pedestrianCrossing.point.properties,
     });
@@ -495,9 +510,14 @@ function routeCrossingMetrics(graph, pathKeys) {
   const unsignalizedCrossings = pedestrianCrossings.filter(
     (crossing) => !crossing.signalized,
   );
+  const possibleCrossingMismatches = unsignalizedCrossings.filter(
+    (crossing) => crossing.possibleMismatch,
+  );
 
   return {
     pedestrianCrossings,
+    possibleCrossingMismatchCount: possibleCrossingMismatches.length,
+    possibleCrossingMismatches,
     signalizedCrossingCount: signalizedCrossings.length,
     unsignalizedCrossingCount: unsignalizedCrossings.length,
     trafficLightCount: trafficLights.length,

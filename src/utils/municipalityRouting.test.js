@@ -255,6 +255,8 @@ describe("Tel Aviv municipality data integration", () => {
     expect(fastest.trafficLights).toHaveLength(6);
     expect(safest.trafficLights).toHaveLength(14);
     expect(Math.round(fastest.distanceMeters)).toBe(2325);
+    expect(safest.possibleCrossingMismatchCount).toBe(7);
+    expect(safest.possibleCrossingMismatches).toHaveLength(7);
     expect(safest.signalizedCrossingCount).toBeGreaterThan(
       fastest.signalizedCrossingCount,
     );

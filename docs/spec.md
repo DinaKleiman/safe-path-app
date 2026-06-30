@@ -21,6 +21,7 @@ The product is not a generic navigation app. The core value is crossing safety: 
 - Walking time calculated from route distance.
 - Traffic-light markers on the map.
 - Signalized and non-signalized pedestrian crossing counts in route results.
+- Possible crossing-data mismatch count and yellow map markers for non-signalized OSM pedestrian crossings on the selected route.
 - `Try harder` flow for a longer route when the normal result has no signalized pedestrian crossings.
 
 ### Out of Scope For Current Release
@@ -88,6 +89,7 @@ External routing engines must not be the source of route safety logic.
    - estimated walking time
    - route mode
    - traffic lights on route
+   - possible crossing-data mismatches
    - signalized pedestrian crossings
    - non-signalized pedestrian crossings
    - data warning when OSM crossing data is used
@@ -217,6 +219,23 @@ Important limitation:
 - A traffic-light point alone does not prove that a pedestrian crossing exists.
 - OSM crossing data helps locate pedestrian crossings, but it may contain mismatches.
 
+### Possible Crossing-Data Mismatches
+
+The app must show possible crossing-data mismatches for the selected route.
+
+Current visible marker rule:
+
+- Yellow `!` marker appears only for a non-signalized OSM pedestrian crossing on the selected route.
+- Yellow marker must not be shown for traffic-light crossings.
+- Yellow marker coordinates come from the OSM pedestrian crossing point, not from a generic road point.
+- Yellow marker popup text:
+
+`Please note: crossing details here may not be fully verified.`
+
+The result count `Possible crossing-data mismatches` must match the number of yellow `!` markers on the route.
+
+The marker should be small enough not to hide traffic-light markers. Current target size: approximately `12px`.
+
 ### Ranking Rules
 
 `Fastest`:
@@ -283,10 +302,13 @@ The map must show:
 - destination marker
 - traffic-light markers from municipality data
 - route traffic-light markers when a route is selected
+- small yellow `!` markers for possible crossing-data mismatches
 
 Traffic-light markers must look like traffic-light symbols, not generic dots.
 
 The map must not label all intersections as traffic lights.
+
+Yellow mismatch markers must not be used for traffic-light crossings and must not visually hide traffic-light markers.
 
 The map should not show visible attribution labels inside the map UI.
 
@@ -298,6 +320,7 @@ After route calculation, show:
 - `Estimated walking time`
 - `Route mode`
 - `Traffic lights on route`
+- `Possible crossing-data mismatches`
 - `Signalized pedestrian crossings`
 - `Non-signalized pedestrian crossings`
 - data-source warning when OSM crossings are used

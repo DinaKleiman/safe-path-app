@@ -62,6 +62,8 @@ Current status: planned, unless marked otherwise. A few autocomplete checks were
 - PW-MAP-004: Start and destination markers appear
 - PW-MAP-005: Route line appears after calculation
 - PW-MAP-006: Route traffic-light count matches route result text
+- PW-MAP-007: Yellow mismatch markers appear only for non-signalized OSM pedestrian crossings
+- PW-MAP-008: Yellow mismatch markers do not hide traffic-light markers
 
 ### Mobile Tests
 
@@ -158,6 +160,8 @@ Current status: planned, unless marked otherwise. A few autocomplete checks were
 | PW-MAP-004 | Map | Start and destination markers appear | Calculate route. | Start and destination markers are visible. | Planned |
 | PW-MAP-005 | Map | Route line appears after calculation | Calculate valid route. | Route polyline is visible. | Planned |
 | PW-MAP-006 | Map | Route traffic-light count matches result text | Calculate valid route. | Header count and result count are consistent. | Planned |
+| PW-MAP-007 | Map | Yellow mismatch markers appear only for non-signalized OSM pedestrian crossings | Calculate `Dizengoff Center` to `Tel Aviv Port`. | Yellow marker count matches `Possible crossing-data mismatches` and `Non-signalized pedestrian crossings`; traffic-light crossings have no yellow marker. | Planned |
+| PW-MAP-008 | Map | Yellow mismatch markers do not hide traffic-light markers | Calculate a route with both traffic lights and yellow markers. | Traffic-light symbols remain visible above yellow warning markers. | Planned |
 
 ## Mobile Tests
 
