@@ -202,7 +202,51 @@ function toSchoolRecord(feature) {
   };
 }
 
-function toStreetRecords(addressRecords) {
+function toStreetRecordFromStreetName(feature) {
+  const properties = feature.properties ?? {};
+  const street = properties.t_rechov || "";
+  const streetEnglish = properties.shem_angli || "";
+
+  if (!street) {
+    return null;
+  }
+
+  return {
+    displayName: street,
+    displayNameEn: streetEnglish || street,
+    displayNameHe: street,
+    lat: null,
+    lon: null,
+    matchedQuery: "municipality:street-names",
+    normalizedNameEn: normalizeSearchText(streetEnglish),
+    normalizedNameHe: normalizeSearchText(street),
+    source: "municipality-street",
+    streetTokensEn: textTokens(streetEnglish),
+    streetTokensHe: textTokens(street),
+  };
+}
+
+function dedupeStreetRecords(records) {
+  const streets = new Map();
+
+  for (const record of records) {
+    const key = record.normalizedNameHe || record.normalizedNameEn;
+
+    if (!key) {
+      continue;
+    }
+
+    const existing = streets.get(key);
+
+    if (!existing || (!existing.lat && record.lat)) {
+      streets.set(key, record);
+    }
+  }
+
+  return [...streets.values()];
+}
+
+function toStreetRecords(addressRecords, streetNamesGeoJson = null) {
   const streets = new Map();
 
   for (const record of addressRecords) {
@@ -227,7 +271,11 @@ function toStreetRecords(addressRecords) {
     });
   }
 
-  return [...streets.values()];
+  const streetNameRecords = (streetNamesGeoJson?.features ?? [])
+    .map(toStreetRecordFromStreetName)
+    .filter(Boolean);
+
+  return dedupeStreetRecords([...streets.values(), ...streetNameRecords]);
 }
 
 function scoreStreetRecord(record, query, queryTokens, language) {
@@ -330,7 +378,11 @@ function scoreSchoolRecord(record, query, schoolQuery) {
   return 0;
 }
 
-export function buildMunicipalitySearchIndex(addressesGeoJson, schoolsGeoJson) {
+export function buildMunicipalitySearchIndex(
+  addressesGeoJson,
+  schoolsGeoJson,
+  streetNamesGeoJson = null,
+) {
   const addresses = (addressesGeoJson?.features ?? [])
     .map(toAddressRecord)
     .filter(Boolean);
@@ -340,7 +392,7 @@ export function buildMunicipalitySearchIndex(addressesGeoJson, schoolsGeoJson) {
     schools: (schoolsGeoJson?.features ?? [])
       .map(toSchoolRecord)
       .filter(Boolean),
-    streets: toStreetRecords(addresses),
+    streets: toStreetRecords(addresses, streetNamesGeoJson),
   };
 }
 

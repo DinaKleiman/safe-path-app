@@ -18,12 +18,28 @@ function readGeoJson(relativePath) {
 describe("Tel Aviv municipality search data", () => {
   const addresses = readGeoJson("public/data/addresses.geojson");
   const schools = readGeoJson("public/data/schools.geojson");
-  const index = buildMunicipalitySearchIndex(addresses, schools);
+  const streetNames = readGeoJson("public/data/street_names.geojson");
+  const index = buildMunicipalitySearchIndex(addresses, schools, streetNames);
 
   it("loads local address and school search datasets", () => {
     expect(index.addresses.length).toBeGreaterThan(50000);
     expect(index.schools.length).toBeGreaterThan(200);
     expect(index.streets.length).toBeGreaterThan(1000);
+  });
+
+  it("uses the dedicated municipality street names dataset for street suggestions", () => {
+    const streetOnlyIndex = buildMunicipalitySearchIndex(
+      { type: "FeatureCollection", features: [] },
+      { type: "FeatureCollection", features: [] },
+      streetNames,
+    );
+
+    const results = searchMunicipalityPlaces(streetOnlyIndex, "אמסטרדם", 5);
+
+    expect(results[0]).toMatchObject({
+      displayName: "אמסטרדם",
+      source: "municipality-street",
+    });
   });
 
   it("finds a school by Hebrew abbreviation and school name", () => {

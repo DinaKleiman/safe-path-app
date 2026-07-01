@@ -13,15 +13,15 @@ const ROUTE_MODE_WEIGHTS = {
   },
   safest: {
     signalizedCrossingMultiplier: 0.3,
-    unsignalizedCrossingMultiplier: 1.05,
-    trafficLightMultiplier: 0.1,
-    regularMultiplier: 1.6,
+    unsignalizedCrossingMultiplier: 2.2,
+    trafficLightMultiplier: 0.7,
+    regularMultiplier: 1.2,
   },
   trafficLightsPriority: {
     signalizedCrossingMultiplier: 0.18,
-    unsignalizedCrossingMultiplier: 0.8,
-    trafficLightMultiplier: 0.05,
-    regularMultiplier: 2.5,
+    unsignalizedCrossingMultiplier: 4,
+    trafficLightMultiplier: 0.35,
+    regularMultiplier: 1.8,
   },
 };
 
@@ -526,14 +526,50 @@ function routeCrossingMetrics(graph, pathKeys) {
 
 function crossingScore(metrics) {
   return (
-    metrics.signalizedCrossingCount * 3 +
-    metrics.trafficLightCount * 2 -
-    metrics.unsignalizedCrossingCount
+    metrics.signalizedCrossingCount * 10 +
+    metrics.trafficLightCount * 0.25 -
+    metrics.unsignalizedCrossingCount * 3
   );
 }
 
 function hasBetterCrossingScore(candidateMetrics, baseMetrics) {
   return crossingScore(candidateMetrics) > crossingScore(baseMetrics);
+}
+
+function hasUsefulTryHarderImprovement(candidateMetrics, baseMetrics) {
+  if (candidateMetrics.signalizedCrossingCount > baseMetrics.signalizedCrossingCount) {
+    return true;
+  }
+
+  if (
+    candidateMetrics.signalizedCrossingCount ===
+      baseMetrics.signalizedCrossingCount &&
+    candidateMetrics.trafficLightCount > baseMetrics.trafficLightCount &&
+    candidateMetrics.unsignalizedCrossingCount <=
+      baseMetrics.unsignalizedCrossingCount
+  ) {
+    return true;
+  }
+
+  return hasBetterCrossingScore(candidateMetrics, baseMetrics);
+}
+
+function displayedPreferredPath(graph, startKey, endKey, fastestPath) {
+  const preferredPath = shortestPath(graph, startKey, endKey, "safest");
+
+  if (!preferredPath) {
+    return null;
+  }
+
+  const fastestMetrics = routeCrossingMetrics(graph, fastestPath.keys);
+  const preferredMetrics = routeCrossingMetrics(graph, preferredPath.keys);
+  const isReasonableDetour =
+    preferredPath.distance <= fastestPath.distance * REASONABLE_DETOUR_MULTIPLIER;
+
+  return isReasonableDetour &&
+    hasBetterCrossingScore(preferredMetrics, fastestMetrics)
+    ? preferredPath
+    : fastestPath;
 }
 
 function buildRouteResult({
@@ -614,23 +650,26 @@ export function buildMunicipalityRoute(graph, start, end, routeMode = "safest") 
     throw new Error("No connected municipality road route found.");
   }
 
-  const fastestMetrics = routeCrossingMetrics(graph, fastestPath.keys);
-  const preferredMetrics = routeCrossingMetrics(graph, preferredPath.keys);
-  const isReasonableDetour =
-    preferredPath.distance <= fastestPath.distance * REASONABLE_DETOUR_MULTIPLIER;
-  const shouldUsePreferred =
-    isReasonableDetour &&
-    hasBetterCrossingScore(preferredMetrics, fastestMetrics);
+  const displayedPath = displayedPreferredPath(
+    graph,
+    snappedStart.node.key,
+    snappedEnd.node.key,
+    fastestPath,
+  );
+
+  if (!displayedPath) {
+    throw new Error("No connected municipality road route found.");
+  }
 
   return buildRouteResult({
     end,
     graph,
-    path: shouldUsePreferred ? preferredPath : fastestPath,
+    path: displayedPath,
     routeMode,
     snappedEnd,
     snappedStart,
     start,
-    crossingPreferenceLimited: !shouldUsePreferred,
+    crossingPreferenceLimited: displayedPath === fastestPath,
   });
 }
 
@@ -656,16 +695,27 @@ export function buildTrafficLightRoute(graph, start, end) {
   );
 
   if (!fastestPath || !tryHarderPath) {
-    throw new Error("No traffic-light crossing route was found for these addresses.");
+    throw new Error("No connected municipality road route found.");
   }
 
-  const fastestMetrics = routeCrossingMetrics(graph, fastestPath.keys);
+  const basePath = displayedPreferredPath(
+    graph,
+    snappedStart.node.key,
+    snappedEnd.node.key,
+    fastestPath,
+  );
+
+  if (!basePath) {
+    throw new Error("No connected municipality road route found.");
+  }
+
+  const baseMetrics = routeCrossingMetrics(graph, basePath.keys);
   const tryHarderMetrics = routeCrossingMetrics(graph, tryHarderPath.keys);
   const allowedDistance = fastestPath.distance * TRY_HARDER_DETOUR_MULTIPLIER;
 
   if (
     tryHarderPath.distance > allowedDistance ||
-    !hasBetterCrossingScore(tryHarderMetrics, fastestMetrics)
+    !hasUsefulTryHarderImprovement(tryHarderMetrics, baseMetrics)
   ) {
     throw new Error("No better traffic-light crossing route was found for these addresses.");
   }

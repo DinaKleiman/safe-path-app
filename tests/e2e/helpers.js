@@ -56,7 +56,6 @@ export async function calculateRoute(page, from, to, mode = "fastest") {
   await closeAutocomplete(page);
   await page.getByRole("radio", { name: mode === "fastest" ? "Fastest Shortest walking time" : "Prefer traffic lights Accept a longer route for more signalized crossings" }).check();
   await clickFindRoute(page);
-  await expect(page.getByText("This route partly uses open-source pedestrian crossing data and may contain mismatches.")).toBeVisible();
 }
 
 export async function routeMetric(page, label) {

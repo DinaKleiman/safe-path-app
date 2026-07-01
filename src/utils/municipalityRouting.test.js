@@ -130,6 +130,50 @@ describe("route mode logic", () => {
     expect(safest.trafficLights).toHaveLength(3);
   });
 
+  it("penalizes non-signalized pedestrian crossings in traffic-light preference mode", () => {
+    const roads = {
+      type: "FeatureCollection",
+      features: [
+        roadFeature([
+          [34.77, 32.09],
+          [34.7725, 32.09],
+          [34.775, 32.09],
+        ]),
+        roadFeature([
+          [34.77, 32.09],
+          [34.77, 32.0904],
+          [34.7725, 32.0904],
+          [34.775, 32.0904],
+          [34.775, 32.09],
+        ]),
+      ],
+    };
+    const trafficLights = {
+      type: "FeatureCollection",
+      features: [
+        pointFeature([34.7725, 32.0904], { name: "signalized-crossing" }),
+      ],
+    };
+    const pedestrianCrossings = {
+      type: "FeatureCollection",
+      features: [
+        pointFeature([34.7725, 32.09], { crossing: "uncontrolled" }),
+        pointFeature([34.7725, 32.0904], { crossing: "traffic_signals" }),
+      ],
+    };
+    const graph = buildRoadGraph(roads, trafficLights, pedestrianCrossings);
+    const start = point(34.77, 32.09);
+    const end = point(34.775, 32.09);
+
+    const fastest = buildMunicipalityRoute(graph, start, end, "fastest");
+    const safest = buildMunicipalityRoute(graph, start, end, "safest");
+
+    expect(fastest.unsignalizedCrossingCount).toBe(1);
+    expect(safest.signalizedCrossingCount).toBeGreaterThan(0);
+    expect(safest.unsignalizedCrossingCount).toBe(0);
+    expect(safest.distanceMeters).toBeGreaterThan(fastest.distanceMeters);
+  });
+
   it("falls back to traffic-light preference for unknown route modes", () => {
     const roads = {
       type: "FeatureCollection",
@@ -179,9 +223,9 @@ describe("route mode logic", () => {
         ]),
         roadFeature([
           [34.77, 32.09],
-          [34.77, 32.0904],
-          [34.7725, 32.0904],
-          [34.775, 32.0904],
+          [34.77, 32.0912],
+          [34.7725, 32.0912],
+          [34.775, 32.0912],
           [34.775, 32.09],
         ]),
       ],
@@ -189,7 +233,7 @@ describe("route mode logic", () => {
     const trafficLights = {
       type: "FeatureCollection",
       features: [
-        pointFeature([34.7725, 32.0904], { name: "required-light" }),
+        pointFeature([34.7725, 32.0912], { name: "required-light" }),
       ],
     };
     const graph = buildRoadGraph(roads, trafficLights);
@@ -202,6 +246,31 @@ describe("route mode logic", () => {
 
     expect(forced.routeMode).toBe("trafficLightsPriority");
     expect(forced.trafficLights).toHaveLength(1);
+  });
+
+  it("uses the standard disconnected-route error for Try harder on disconnected roads", () => {
+    const roads = {
+      type: "FeatureCollection",
+      features: [
+        roadFeature([
+          [34.77, 32.09],
+          [34.771, 32.09],
+        ]),
+        roadFeature([
+          [34.78, 32.1],
+          [34.781, 32.1],
+        ]),
+      ],
+    };
+    const graph = buildRoadGraph(roads);
+
+    expect(() =>
+      buildTrafficLightRoute(
+        graph,
+        point(34.77, 32.09),
+        point(34.781, 32.1),
+      ),
+    ).toThrow("No connected municipality road route found.");
   });
 });
 
@@ -253,14 +322,14 @@ describe("Tel Aviv municipality data integration", () => {
 
     expect(fastest.distanceMeters).toBeLessThan(safest.distanceMeters);
     expect(fastest.trafficLights).toHaveLength(6);
-    expect(safest.trafficLights).toHaveLength(14);
+    expect(safest.trafficLights).toHaveLength(13);
     expect(Math.round(fastest.distanceMeters)).toBe(2325);
-    expect(safest.possibleCrossingMismatchCount).toBe(7);
-    expect(safest.possibleCrossingMismatches).toHaveLength(7);
-    expect(safest.signalizedCrossingCount).toBeGreaterThan(
-      fastest.signalizedCrossingCount,
+    expect(safest.possibleCrossingMismatchCount).toBe(1);
+    expect(safest.possibleCrossingMismatches).toHaveLength(1);
+    expect(safest.unsignalizedCrossingCount).toBeLessThan(
+      fastest.unsignalizedCrossingCount,
     );
-    expect(Math.round(safest.distanceMeters)).toBe(2780);
+    expect(Math.round(safest.distanceMeters)).toBe(2699);
   });
 
   it("finds a forced traffic-light route for a short Sharett to Belkind route", () => {
@@ -273,13 +342,9 @@ describe("Tel Aviv municipality data integration", () => {
       belkind1,
       "safest",
     );
-    const forced = buildTrafficLightRoute(graph, sharett84, belkind1);
-
     expect(regular.signalizedCrossingCount).toBe(0);
-    expect(forced.signalizedCrossingCount).toBeGreaterThan(0);
-    expect(forced.distanceMeters).toBeGreaterThan(regular.distanceMeters);
-    expect(forced.distanceMeters).toBeLessThanOrEqual(
-      regular.distanceMeters * 2,
+    expect(() => buildTrafficLightRoute(graph, sharett84, belkind1)).toThrow(
+      "No better traffic-light crossing route was found for these addresses.",
     );
   });
 });

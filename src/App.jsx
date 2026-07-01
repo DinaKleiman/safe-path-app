@@ -499,9 +499,14 @@ export default function App() {
   useEffect(() => {
     async function loadMunicipalitySearchData() {
       try {
-        const [addressesResponse, schoolsResponse] = await Promise.all([
+        const [
+          addressesResponse,
+          schoolsResponse,
+          streetNamesResponse,
+        ] = await Promise.all([
           fetch("/data/addresses.geojson"),
           fetch("/data/schools.geojson"),
+          fetch("/data/street_names.geojson"),
         ]);
 
         if (!addressesResponse.ok) {
@@ -512,11 +517,16 @@ export default function App() {
           throw new Error("Could not load municipality schools.geojson");
         }
 
+        if (!streetNamesResponse.ok) {
+          throw new Error("Could not load municipality street_names.geojson");
+        }
+
         const addresses = await addressesResponse.json();
         const schools = await schoolsResponse.json();
+        const streetNames = await streetNamesResponse.json();
 
         setMunicipalitySearchIndex(
-          buildMunicipalitySearchIndex(addresses, schools),
+          buildMunicipalitySearchIndex(addresses, schools, streetNames),
         );
         setMunicipalitySearchError("");
       } catch (error) {
@@ -679,8 +689,9 @@ export default function App() {
           walkingRoute.properties.unsignalizedCrossingCount,
         crossingPreferenceLimited:
           walkingRoute.properties.crossingPreferenceLimited,
-        message:
-          "This route partly uses open-source pedestrian crossing data and may contain mismatches.",
+        message: walkingRoute.properties.pedestrianCrossingCount
+          ? "This route partly uses open-source pedestrian crossing data and may contain mismatches."
+          : "",
         ...extraSummary,
       });
     } catch (error) {
@@ -721,7 +732,7 @@ export default function App() {
       <header className="top-bar">
         <div>
           <h1>Safe Path</h1>
-          <p>Test: enter A and B, then draw a walking route on the map</p>
+          <p>Prefer walking routes through signalized crossings.</p>
         </div>
       </header>
 
@@ -806,7 +817,9 @@ export default function App() {
 
             {routeSummary && !routeSummary.error && (
               <div>
-                <p className="route-data-warning">{routeSummary.message}</p>
+                {routeSummary.message && (
+                  <p className="route-data-warning">{routeSummary.message}</p>
+                )}
                 <p>
                   <strong>Distance:</strong>{" "}
                   {(routeSummary.distanceMeters / 1000).toFixed(2)} km
@@ -827,7 +840,7 @@ export default function App() {
                   {routeSummary.trafficLightCount}
                 </p>
                 <p>
-                  <strong>Possible crossing-data mismatches:</strong>{" "}
+                  <strong>Crossings without confirmed traffic lights:</strong>{" "}
                   {routeSummary.possibleCrossingMismatchCount}
                 </p>
                 <p>
