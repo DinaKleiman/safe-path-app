@@ -98,7 +98,7 @@ test.describe("desktop route UI", () => {
 
     await expect(page.getByText("No better traffic-light crossing route was found within adding reasonable distance.")).toBeVisible();
     await page.getByRole("button", { name: "Try harder" }).click();
-    await expect(page.getByText("This can significantly lengthen the path.")).toBeVisible();
+    await expect(page.getByText("This may significantly lengthen your route and may still include crossings without traffic lights.")).toBeVisible();
     await page.getByRole("button", { name: "Do it anyway" }).click();
 
     await expect(page.getByText("Route mode: Try harder")).toBeVisible();
@@ -111,9 +111,6 @@ test.describe("desktop route UI", () => {
 
     expect(tryHarderSignalizedCrossings).toBeGreaterThan(0);
     expect(tryHarderUnsignalizedCrossings).toBeGreaterThan(0);
-    await expect(page.getByText(
-      "Please note: this route may still include crossings without traffic lights.",
-    )).toBeVisible();
   });
 });
 

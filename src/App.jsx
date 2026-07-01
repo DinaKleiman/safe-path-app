@@ -715,9 +715,7 @@ export default function App() {
   }
 
   async function handleDoItAnyway() {
-    await calculateRoute("trafficLightsPriority", {
-      triedHarder: true,
-    });
+    await calculateRoute("trafficLightsPriority");
   }
 
   function handleCancelLongRoute() {
@@ -869,7 +867,7 @@ export default function App() {
                       </button>
                       {routeSummary.needsLongRouteConfirmation && (
                         <div className="route-confirmation">
-                          <p>This can significantly lengthen the path.</p>
+                          <p>This may significantly lengthen your route and may still include crossings without traffic lights.</p>
                           <button
                             className="secondary-button"
                             disabled={loading || !roadGraph}
@@ -889,13 +887,6 @@ export default function App() {
                         </div>
                       )}
                     </div>
-                  )}
-                {routeSummary.triedHarder &&
-                  routeSummary.unsignalizedCrossingCount > 0 && (
-                    <p className="route-note">
-                      Please note: this route may still include crossings
-                      without traffic lights.
-                    </p>
                   )}
               </div>
             )}
