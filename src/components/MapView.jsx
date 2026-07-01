@@ -26,10 +26,27 @@ const trafficLightIcon = L.divIcon({
   popupAnchor: [0, -5],
 });
 
+const crossingMismatchIcon = L.divIcon({
+  className: "crossing-mismatch-marker",
+  html: '<span class="crossing-mismatch-shell" aria-hidden="true">!</span>',
+  iconSize: [12, 12],
+  iconAnchor: [6, 6],
+  popupAnchor: [0, -6],
+});
+
 function trafficLightPoint(feature, latlng) {
   return L.marker(latlng, {
     icon: trafficLightIcon,
   });
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function trafficLightPopup(feature, layer) {
@@ -41,7 +58,7 @@ function trafficLightPopup(feature, layer) {
     "Traffic light";
 
   layer.bindPopup(`
-    <b>${name}</b><br/>
+    <b>${escapeHtml(name)}</b><br/>
     Traffic-light location from municipality layer: צמתים מרומזרים
   `);
 }
@@ -111,6 +128,35 @@ function RouteTrafficLights({ route }) {
   ));
 }
 
+function RouteCrossingMismatchSymbols({ route }) {
+  const mismatches = route?.properties?.possibleCrossingMismatches || [];
+
+  return mismatches.map((mismatch) => (
+    <GeoJSON
+      data={{
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: [mismatch.lon, mismatch.lat],
+        },
+        properties: mismatch,
+      }}
+      key={`symbol-${mismatch.lon}-${mismatch.lat}`}
+      pointToLayer={(_feature, latlng) =>
+        L.marker(latlng, { icon: crossingMismatchIcon })
+      }
+      onEachFeature={(feature, layer) => {
+        layer.bindPopup(
+          escapeHtml(
+            feature.properties.mismatchReason ||
+              "Please note: crossing details here may not be fully verified.",
+          ),
+        );
+      }}
+    />
+  ));
+}
+
 export default function MapView({ route }) {
   const [signals, setSignals] = useState(null);
   const [error, setError] = useState("");
@@ -154,9 +200,13 @@ export default function MapView({ route }) {
 
       {error && <div className="map-error">Error: {error}</div>}
 
-      <MapContainer center={TEL_AVIV_CENTER} zoom={13} className="map">
+      <MapContainer
+        attributionControl={false}
+        center={TEL_AVIV_CENTER}
+        zoom={13}
+        className="map"
+      >
         <TileLayer
-          attribution="&copy; OpenStreetMap contributors"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
@@ -175,6 +225,7 @@ export default function MapView({ route }) {
               data={route}
               style={routeStyle}
             />
+            <RouteCrossingMismatchSymbols route={route} />
             <RouteTrafficLights route={route} />
             <RouteEndpoint
               point={route.properties.start}

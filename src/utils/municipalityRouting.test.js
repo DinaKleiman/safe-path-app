@@ -93,18 +93,18 @@ describe("route mode logic", () => {
         roadFeature(
           [
             [34.77, 32.09],
-            [34.771, 32.09],
-            [34.772, 32.09],
+            [34.7725, 32.09],
+            [34.775, 32.09],
           ],
           { name: "short-route" },
         ),
         roadFeature(
           [
             [34.77, 32.09],
-            [34.77, 32.091],
-            [34.771, 32.091],
-            [34.772, 32.091],
-            [34.772, 32.09],
+            [34.77, 32.0904],
+            [34.7725, 32.0904],
+            [34.775, 32.0904],
+            [34.775, 32.09],
           ],
           { name: "signalized-route" },
         ),
@@ -113,14 +113,14 @@ describe("route mode logic", () => {
     const trafficLights = {
       type: "FeatureCollection",
       features: [
-        pointFeature([34.77, 32.091], { name: "light-a" }),
-        pointFeature([34.771, 32.091], { name: "light-b" }),
-        pointFeature([34.772, 32.091], { name: "light-c" }),
+        pointFeature([34.77, 32.0904], { name: "light-a" }),
+        pointFeature([34.7725, 32.0904], { name: "light-b" }),
+        pointFeature([34.775, 32.0904], { name: "light-c" }),
       ],
     };
     const graph = buildRoadGraph(roads, trafficLights);
     const start = point(34.77, 32.09);
-    const end = point(34.772, 32.09);
+    const end = point(34.775, 32.09);
 
     const fastest = buildMunicipalityRoute(graph, start, end, "fastest");
     const safest = buildMunicipalityRoute(graph, start, end, "safest");
@@ -136,24 +136,24 @@ describe("route mode logic", () => {
       features: [
         roadFeature([
           [34.77, 32.09],
-          [34.771, 32.09],
-          [34.772, 32.09],
+          [34.7725, 32.09],
+          [34.775, 32.09],
         ]),
         roadFeature([
           [34.77, 32.09],
-          [34.77, 32.091],
-          [34.771, 32.091],
-          [34.772, 32.091],
-          [34.772, 32.09],
+          [34.77, 32.0904],
+          [34.7725, 32.0904],
+          [34.775, 32.0904],
+          [34.775, 32.09],
         ]),
       ],
     };
     const trafficLights = {
       type: "FeatureCollection",
       features: [
-        pointFeature([34.77, 32.091]),
-        pointFeature([34.771, 32.091]),
-        pointFeature([34.772, 32.091]),
+        pointFeature([34.77, 32.0904]),
+        pointFeature([34.7725, 32.0904]),
+        pointFeature([34.775, 32.0904]),
       ],
     };
     const graph = buildRoadGraph(roads, trafficLights);
@@ -161,7 +161,7 @@ describe("route mode logic", () => {
     const fallback = buildMunicipalityRoute(
       graph,
       point(34.77, 32.09),
-      point(34.772, 32.09),
+      point(34.775, 32.09),
       "unknown-mode",
     );
 
@@ -174,22 +174,22 @@ describe("route mode logic", () => {
       features: [
         roadFeature([
           [34.77, 32.09],
-          [34.771, 32.09],
-          [34.772, 32.09],
+          [34.7725, 32.09],
+          [34.775, 32.09],
         ]),
         roadFeature([
           [34.77, 32.09],
-          [34.77, 32.091],
-          [34.771, 32.091],
-          [34.772, 32.091],
-          [34.772, 32.09],
+          [34.77, 32.0904],
+          [34.7725, 32.0904],
+          [34.775, 32.0904],
+          [34.775, 32.09],
         ]),
       ],
     };
     const trafficLights = {
       type: "FeatureCollection",
       features: [
-        pointFeature([34.771, 32.091], { name: "required-light" }),
+        pointFeature([34.7725, 32.0904], { name: "required-light" }),
       ],
     };
     const graph = buildRoadGraph(roads, trafficLights);
@@ -197,7 +197,7 @@ describe("route mode logic", () => {
     const forced = buildTrafficLightRoute(
       graph,
       point(34.77, 32.09),
-      point(34.772, 32.09),
+      point(34.775, 32.09),
     );
 
     expect(forced.routeMode).toBe("trafficLightsPriority");
@@ -208,11 +208,13 @@ describe("route mode logic", () => {
 describe("Tel Aviv municipality data integration", () => {
   const roads = readGeoJson("public/data/roads.geojson");
   const trafficLights = readGeoJson("public/data/signalized_intersections.geojson");
-  const graph = buildRoadGraph(roads, trafficLights);
+  const pedestrianCrossings = readGeoJson("public/data/pedestrian_crossings.geojson");
+  const graph = buildRoadGraph(roads, trafficLights, pedestrianCrossings);
 
   it("loads valid municipality road and traffic-light datasets", () => {
     expect(roads.features.length).toBeGreaterThan(8000);
     expect(trafficLights.features.length).toBeGreaterThan(400);
+    expect(pedestrianCrossings.features.length).toBeGreaterThan(4000);
     expect(
       roads.features.every((feature) => feature.geometry?.type === "LineString"),
     ).toBe(true);
@@ -253,7 +255,12 @@ describe("Tel Aviv municipality data integration", () => {
     expect(fastest.trafficLights).toHaveLength(6);
     expect(safest.trafficLights).toHaveLength(14);
     expect(Math.round(fastest.distanceMeters)).toBe(2325);
-    expect(Math.round(safest.distanceMeters)).toBe(2842);
+    expect(safest.possibleCrossingMismatchCount).toBe(7);
+    expect(safest.possibleCrossingMismatches).toHaveLength(7);
+    expect(safest.signalizedCrossingCount).toBeGreaterThan(
+      fastest.signalizedCrossingCount,
+    );
+    expect(Math.round(safest.distanceMeters)).toBe(2780);
   });
 
   it("finds a forced traffic-light route for a short Sharett to Belkind route", () => {
@@ -268,8 +275,11 @@ describe("Tel Aviv municipality data integration", () => {
     );
     const forced = buildTrafficLightRoute(graph, sharett84, belkind1);
 
-    expect(regular.trafficLights).toHaveLength(0);
-    expect(forced.trafficLights.length).toBeGreaterThan(0);
+    expect(regular.signalizedCrossingCount).toBe(0);
+    expect(forced.signalizedCrossingCount).toBeGreaterThan(0);
     expect(forced.distanceMeters).toBeGreaterThan(regular.distanceMeters);
+    expect(forced.distanceMeters).toBeLessThanOrEqual(
+      regular.distanceMeters * 2,
+    );
   });
 });

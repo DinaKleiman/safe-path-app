@@ -1,468 +1,449 @@
-# Safe Path Specification
+# Safe Path Product Specification
 
-## 1. Product Purpose
+## 1. Objective
 
-Safe Path helps pedestrians choose safer walking routes in Tel Aviv.
+Safe Path helps pedestrians in Tel Aviv choose walking routes that prefer road crossings with traffic lights.
 
-The app is not only a map. Its purpose is to support safer movement decisions, especially around road crossings, traffic-light crossings, schools, and areas that may become risky for pedestrians.
+The product is not a generic navigation app. The core value is crossing safety: when a route crosses roads, the app should prefer crossings that are signalized, while still keeping walking distance reasonable.
 
-The first version focuses on:
+## 2. Release Scope
 
-- Accepting a start location and destination.
-- Displaying a route on the map.
-- Showing Tel Aviv traffic-light locations.
-- Supporting Hebrew and English address input.
+### In Scope
 
-## 2. Core Data Principle
+- Walking routes inside Tel Aviv.
+- Hebrew and English location search.
+- Autocomplete for addresses, streets, schools, and known local places.
+- One route mode selected at a time.
+- Route modes:
+  - `Prefer traffic lights`
+  - `Fastest`
+- Route distance calculated from the local road graph.
+- Walking time calculated from route distance.
+- Traffic-light markers on the map.
+- Signalized and non-signalized pedestrian crossing counts in route results.
+- Possible crossing-data mismatch count and yellow map markers for non-signalized OSM pedestrian crossings on the selected route.
+- `Try harder` flow for a longer route when the normal result has no signalized pedestrian crossings.
 
-Safe Path is based on Tel Aviv Municipality maps as the source of truth for safety and routing logic.
+### Out of Scope For Current Release
 
-This means municipality data decides:
+- Accident-risk scoring.
+- Bicycle routing.
+- Bus-stop logic.
 
-- Road-network distance.
-- Traffic-light locations.
-- Intersection context.
-- Future accident-risk logic.
-- Future bicycle-lane logic.
-- Future pedestrian-safety scoring.
+## 3. Source Of Truth
 
- External services may be used only as helper or display layers. They should not decide whether a route is safe.
+### Primary Source
 
-Allowed helper/display layers:
+Tel Aviv Municipality data is the primary source for app-owned route and safety logic.
 
-- OpenStreetMap tile layer: visual background only.
-- Nominatim address search: converts typed text into coordinates only.
+Used now:
 
-Not allowed as Safe Path source of truth:
+| Dataset | File | Purpose |
+| --- | --- | --- |
+| Roads | `public/data/roads.geojson` | Build walking route graph and calculate route distance |
+| Signalized intersections | `public/data/signalized_intersections.geojson` | Identify municipality traffic-light locations |
+| Intersections | `public/data/intersections.geojson` | Available for intersection context |
+| Addresses | `public/data/addresses.geojson` | Municipality address autocomplete and address matching |
+| Schools | `public/data/schools.geojson` | School search and autocomplete |
+| Street names | `public/data/street_names.geojson` | Street-name autocomplete |
 
-- External traffic-light data.
-- External intersection safety data.
-- External accident-risk data.
-- External bicycle-lane safety data.
-- External route safety scoring.
+### Secondary Helper Source
 
-Routing engines should not be treated as the source of safety truth. If an external routing engine is temporarily used to draw a route shape, the final Safe Path logic should still be based on municipality data.
+OpenStreetMap pedestrian crossing data is used only because the municipality traffic-light layer does not prove exact pedestrian crossing locations.
 
-Target direction:
+Used now:
 
-- Use municipality road data for route distance.
-- Use municipality traffic-light data to identify traffic-light locations.
-- Use municipality datasets for future accident and bicycle-lane layers.
+| Dataset | File | Purpose |
+| --- | --- | --- |
+| Pedestrian crossings | `public/data/pedestrian_crossings.geojson` | Identify possible pedestrian crossing points and whether they are signalized |
+| Map tiles | OpenStreetMap tile layer | Visual map background only |
 
-Current municipality files:
+Required warning when OSM pedestrian crossings affect routing:
 
-- `roads.geojson`
-- `intersections.geojson`
-- `signalized_intersections.geojson`
+`This route partly uses open-source pedestrian crossing data and may contain mismatches.`
 
-If a future safety feature cannot be supported by these files, the app should require another Tel Aviv Municipality dataset instead of using a non-municipality safety source.
+### External Services
 
-## 3. Target Users
+Nominatim may be used for autocomplete/geocoding helper behavior only.
 
-Primary users:
+Nominatim must not decide route safety.
 
-- Pedestrians in Tel Aviv.
-- Parents planning routes for children.
-- School-related walking routes.
-- Elderly pedestrians or users who prefer safer crossings.
-- Users who want a safer alternative to the shortest route.
-
-Future users:
-
-- Cyclists who want safer bicycle routes based on official bike-lane data.
+External routing engines must not be the source of route safety logic.
 
 ## 4. Core User Flow
 
-1. User enters a start location.
-2. User enters a destination.
-3. App checks address suggestions while the user types.
-4. User can select an autocomplete suggestion.
-5. User clicks `Find safe route`.
-6. App draws the route on the map.
-7. App shows start and destination markers.
-8. App shows traffic-light locations on the map.
-9. App shows route distance and estimated time.
-
-## 5. Address Input Logic
-
-The app should support both Hebrew and English input.
-
-Examples:
-
-- `Dizengoff Center`
-- `Tel Aviv Port`
-- `בית הספר גרץ`
-- `בה״ס גרץ`
-- `אד"ם הכהן`
-
-### Autocomplete
-
-While the user types in either address field, the app should check possible address matches.
-
-Autocomplete behavior:
-
-- Starts after at least 2 characters.
-- Uses a short delay so it does not search on every keystroke immediately.
-- Shows matching Tel Aviv locations.
-- Includes local known aliases when external geocoding is incomplete.
-- Lets the user select one suggestion.
-- Fills the input field with the selected suggestion.
-
-Important limitation:
-
-- The current municipality road file includes street names, but does not include all building addresses, house numbers, schools, businesses, or landmarks.
-- For full address autocomplete using municipality-only data, the app needs a Tel Aviv Municipality address/places dataset.
-- Until that dataset is added, autocomplete can support street names from `roads.geojson` and known local aliases.
-
-### Local Address Aliases
-
-Some local names or Hebrew abbreviations may not be recognized by external geocoding services.
-
-The app should support local fallback mappings for important known places.
-
-Current required local fallback:
-
-- `בית הספר גרץ`
-- `בה״ס גרץ`
-- `ביה״ס גרץ`
-
-These should resolve to:
-
-- `בית הספר גרץ, אד"ם הכהן, תל אביב`
-
-This is important because `בית הספר גרץ` should not resolve to `רחוב גרץ`.
-
-### Address Not Found
-
-If an address is not found:
-
-- The app should try common Tel Aviv variants.
-- The app should try Hebrew/English forms when available.
-- The app should try local aliases.
-- If still not found, the app should show a clear error message.
-
-The app should not silently fail.
-
-## 6. Map Display Logic
-
-The map should display:
-
-- Municipality road network as the base map.
-- Route line.
-- Start point.
-- Destination point.
-- Traffic-light locations.
-
-Traffic-light locations should be shown as traffic-light symbols, not generic intersection dots.
-
-The map should not make users think all intersections are traffic lights.
-
-## 7. Distance and Route Logic
-
-The app should calculate route distance from the Tel Aviv Municipality road network.
-
-Basic logic:
-
-1. Load `roads.geojson`.
-2. Convert each road LineString into graph edges.
-3. Use road coordinates as graph nodes.
-4. Calculate each edge distance from its coordinates.
-5. Convert user start and destination into map points.
-6. Snap each point to the nearest road node or nearest road segment.
-7. Run shortest-path search through the road graph.
-8. Sum the selected road-edge distances.
-9. Draw the resulting route geometry.
-
-Recommended first algorithm:
-
-- Dijkstra shortest path.
-
-Why this is enough for first version:
-
-- All edges have a distance.
-- The app only needs shortest route first.
-- Later, safety weights can modify edge cost.
-
-Distance meaning:
-
-- Distance should be the length of the selected road-network path.
-- It should not be straight-line distance between A and B.
-
-Walking-time meaning:
-
-- Walking time should be calculated from the road-network distance.
-- Formula: `walking time seconds = route distance meters / 1.3`
-- `1.3 m/s` is about `4.7 km/h`.
-
-What is needed for A/B text input:
-
-- If A and B are already coordinates, distance can be calculated from `roads.geojson`.
-- If A and B are text addresses, the app needs a way to convert text into coordinates.
-- With current municipality files, this is possible for street names and known aliases, but not for every exact address.
-- For exact addresses, the app needs a municipality address/places dataset.
-
-## 8. Data Sources
-
-Map safety layers and traffic-light data should be based on Tel Aviv Municipality data.
-
-Current municipality-based data:
-
-- Traffic-light locations: `צמתים מרומזרים`
-- Road data
-- Intersection data
-
-The traffic-light layer should represent traffic-light locations only, not every intersection.
-
-Future municipality-based data:
-
-- `מפת תאונות דרכים`
-- `שבילי אופניים`
-- Municipality address/places dataset
-
-## 9. Route Mode Selection
-
-The user should be able to select only one route mode at a time.
-
-The UI should use a single-choice control:
-
-- Segmented control, or
-- Radio buttons, or
-- Dropdown
-
-Recommended route modes:
-
-1. `Fastest`
-2. `Prefer traffic lights`
-
-Default mode:
-
-- `Prefer traffic lights`
-
-Current implementation:
-
-- Route mode is implemented as single-selection radio options.
-- Only one route mode can be selected at a time.
-
-### Fastest
-
-Goal:
-
-- Shortest walking time.
-
-Behavior:
-
-- Uses normal route calculation.
-- Shows traffic lights as map context.
-- Does not strongly prioritize traffic-light crossings.
-
-Best for:
-
-- Users who want the quickest route.
-
-### Prefer Traffic Lights
-
-Goal:
-
-- Prefer signalized crossings, even if the route is longer.
-
-Behavior:
-
-- Prefers crossings near traffic lights.
-- Avoids unsignalized crossings where possible.
-- Uses traffic lights as a simple proxy because richer safety data is not available yet.
-
-Best for:
-
-- Children.
-- School routes.
-- Elderly pedestrians.
-- Users who prefer signalized crossings over shortest distance.
-
-### Multiple Mode Selection
-
-The app should not allow more than one route mode at the same time.
-
-Reason:
-
-- `Fastest` and `Safest` can conflict.
-- Example: the fastest route may cross a road without traffic lights, while the safest route may add several minutes to reach a traffic-light crossing.
-
-If the UI ever allows more than one mode by mistake, the app should apply this priority:
-
-1. `Prefer traffic lights`
-2. `Fastest`
-
-But the preferred design is to prevent multiple selection entirely.
-
-## 10. Safety Scoring Logic
-
-Future versions should compare possible routes using a safety score.
-
-Higher score means safer route.
-
-Example scoring factors:
-
-- Traffic-light crossing: positive score.
-- Unsignalized crossing: negative score.
-- Major road crossing: negative score.
-- Accident-prone area: negative score.
-- Quiet street: positive score.
-- Extra walking time: small negative score.
-- Official govmap car accidents interceptions
-
-### Example
-
-Route A:
-
-- Walking time: 10 minutes
-- Road crossings: 4
-- Crossings near traffic lights: 1
-- Major road crossings: 2
-- Accident-prone areas nearby: 1
-
-Route B:
-
-- Walking time: 13 minutes
-- Road crossings: 5
-- Crossings near traffic lights: 4
-- Major road crossings: 1
-- Accident-prone areas nearby: 0
-
-Example scoring:
-
-| Factor | Route A | Route B |
-| --- | ---: | ---: |
-| Base score | 100 | 100 |
-| Traffic-light crossings | +10 | +40 |
-| Unsignalized crossings | -45 | -15 |
-| Major road crossings | -40 | -20 |
-| Accident-prone areas | -25 | 0 |
-| Extra walking time | 0 | -6 |
-| Final score | 0 | 99 |
-
-Interpretation:
-
-- `Fastest` may choose Route A because it is 3 minutes shorter.
-- `Prefer traffic lights` should choose Route B because it has more traffic-light crossings.
-
-The exact scoring values can change later. The important logic is that safe features add points, risk factors remove points, and time penalty prevents unreasonable detours.
-
-## 11. Current Walking-Time Logic
-
-Distance should represent the length of the returned route path, not the straight-line distance between the start and destination.
-
-Current walking-time estimate:
-
-- Walking speed: `1.3 meters per second`
-- Equivalent speed: about `4.7 km/h`
-- Formula: `walking time seconds = route distance meters / 1.3`
+1. User enters `From`.
+2. User enters `To`.
+3. App shows autocomplete suggestions while typing.
+4. User selects a suggestion or enters a full address.
+5. User selects one route mode.
+6. User clicks `Find safe route`.
+7. App validates both locations before drawing a route.
+8. App builds route from the local road graph.
+9. App displays:
+   - route line
+   - start marker
+   - destination marker
+   - traffic-light markers
+   - distance
+   - estimated walking time
+   - route mode
+   - traffic lights on route
+   - possible crossing-data mismatches
+   - signalized pedestrian crossings
+   - non-signalized pedestrian crossings
+   - data warning when OSM crossing data is used
+
+## 5. Address And Place Search
+
+### Functional Requirements
+
+- Search must support Hebrew and English.
+- Hebrew input should prioritize Hebrew suggestions.
+- English input should prioritize English suggestions.
+- Search starts after at least 2 characters.
+- Results should include all matching entity types, not only streets.
+- If a name can mean several entity types, all relevant options must appear.
 
 Example:
 
-- Distance: `4.07 km`
-- Calculation: `4,070 / 1.3 = 3,131 seconds`
-- Result: about `52 minutes`
+Input: `משה שרת`
 
-Important note:
+Expected options may include:
 
-- The target logic is municipality-only route distance.
-- External routing-service duration should not be used.
-- The app should calculate walking time from route distance.
+- street named `משה שרת`
+- school named `משה שרת`
+- other municipality place/entity with the same name, if present in loaded datasets
 
-## 12. Future Direction: Accident Map
+### Street Without Building Number
 
-Future versions should add `מפת תאונות דרכים`.
+If the user selects or enters a street name without a building number, the app must ask for the building number immediately in the address field, before the user clicks `Find safe route`.
+
+Message:
+
+`Enter building number`
+
+The message disappears after a building number is entered.
+
+Full address existence must be verified before the route is built and presented.
+
+### Local Aliases
+
+The app must support common Hebrew school prefixes:
+
+- `בית ספר`
+- `ביהס`
+- `ביה״ס`
+- `בהס`
+- `בה״ס`
+
+Example:
+
+`בה״ס גרץ` should resolve to `בית הספר גרץ`, not to `רחוב גרץ`.
+
+## 6. Route Modes
+
+The user can select only one route mode at a time.
+
+Default:
+
+- `Prefer traffic lights`
+
+Allowed modes:
+
+| Mode | Product Meaning | Technical Meaning |
+| --- | --- | --- |
+| `Fastest` | Shortest available walking route | Minimize road-graph distance |
+| `Prefer traffic lights` | Prefer routes with signalized pedestrian crossings | Optimize crossing quality while limiting extra distance |
+
+## 7. Routing Model
+
+### Graph Construction
+
+1. Load `roads.geojson`.
+2. Convert each `LineString` coordinate sequence into graph nodes and edges.
+3. Edge distance is calculated from geographic coordinates.
+4. Load traffic-light points from `signalized_intersections.geojson`.
+5. Annotate nearby graph nodes with traffic-light metadata.
+6. Load pedestrian crossings from `pedestrian_crossings.geojson`.
+7. Annotate nearby graph nodes with pedestrian-crossing metadata.
+
+### Snapping
+
+For each route request:
+
+1. Convert `From` and `To` into coordinates.
+2. Snap each coordinate to the nearest road graph node.
+3. Add snap distance to final route distance.
+
+### Distance
+
+Distance must be route-path distance through the road graph.
+
+Distance must not be straight-line distance between A and B.
+
+### Walking Time
+
+Walking time is derived from route distance.
+
+Formula:
+
+`walking time seconds = route distance meters / 1.3`
+
+Assumption:
+
+- `1.3 m/s`
+- approximately `4.7 km/h`
+
+External service duration must not be used.
+
+## 8. Crossing Logic
+
+### Definitions
+
+Signalized pedestrian crossing:
+
+- OSM crossing marked as signalized, or
+- pedestrian crossing near a Tel Aviv Municipality traffic-light point.
+
+Non-signalized pedestrian crossing:
+
+- OSM crossing point that is not marked as signalized and is not near a municipality traffic-light point.
+
+Traffic-light point:
+
+- Municipality signalized-intersection point.
+
+Important limitation:
+
+- A traffic-light point alone does not prove that a pedestrian crossing exists.
+- OSM crossing data helps locate pedestrian crossings, but it may contain mismatches.
+
+### Possible Crossing-Data Mismatches
+
+The app must show possible crossing-data mismatches for the selected route.
+
+Current visible marker rule:
+
+- Yellow `!` marker appears only for a non-signalized OSM pedestrian crossing on the selected route.
+- Yellow marker must not be shown for traffic-light crossings.
+- Yellow marker coordinates come from the OSM pedestrian crossing point, not from a generic road point.
+- Yellow marker popup text:
+
+`Please note: crossing details here may not be fully verified.`
+
+The result count `Possible crossing-data mismatches` must match the number of yellow `!` markers on the route.
+
+The marker should be small enough not to hide traffic-light markers. Current target size: approximately `12px`.
+
+### Ranking Rules
+
+`Fastest`:
+
+- Minimize route distance.
+- Traffic lights and crossings are displayed as context.
+- Safety preference does not override distance.
+
+`Prefer traffic lights`:
+
+- Prefer routes with more signalized pedestrian crossings.
+- Penalize known non-signalized pedestrian crossings.
+- Allow non-signalized crossings when no reasonable signalized alternative exists.
+- Do not select a safer-looking route if the added distance is unreasonable.
+
+Current internal reasonable-distance limit:
+
+- Up to `1.3x` the fastest route distance.
+
+UI must not expose the numeric `1.3x` value.
+
+User-facing message:
+
+`No better traffic-light crossing route was found within adding reasonable distance.`
+
+## 9. Try Harder Flow
+
+Trigger:
+
+- The normal `Prefer traffic lights` result has no signalized pedestrian crossings.
+- The app has no better signalized-crossing route within reasonable added distance.
+
+Button:
+
+- `Try harder`
+
+Before recalculating, show confirmation:
+
+`This can significantly lengthen the path.`
+
+Buttons:
+
+- `Do it anyway`
+- `Cancel`
+
+If user selects `Do it anyway`:
+
+- App may calculate a route up to `2x` the fastest route distance.
+- App should still prefer signalized pedestrian crossings.
+- App should choose the best crossing-score route available inside that limit.
+
+If the returned route still has non-signalized crossings, show:
+
+`Please note: this route may still include crossings without traffic lights.`
+
+If no better route is found up to `2x`, show a clear no-route message.
+
+## 10. Map Requirements
+
+The map must show:
+
+- route line
+- start marker
+- destination marker
+- traffic-light markers from municipality data
+- route traffic-light markers when a route is selected
+- small yellow `!` markers for possible crossing-data mismatches
+
+Traffic-light markers must look like traffic-light symbols, not generic dots.
+
+The map must not label all intersections as traffic lights.
+
+Yellow mismatch markers must not be used for traffic-light crossings and must not visually hide traffic-light markers.
+
+The map should not show visible attribution labels inside the map UI.
+
+## 11. Result Panel Requirements
+
+After route calculation, show:
+
+- `Distance`
+- `Estimated walking time`
+- `Route mode`
+- `Traffic lights on route`
+- `Possible crossing-data mismatches`
+- `Signalized pedestrian crossings`
+- `Non-signalized pedestrian crossings`
+- data-source warning when OSM crossings are used
+
+Do not show `Try harder` if the current route already includes signalized pedestrian crossings.
+
+## 12. Error States
+
+### Missing Input
+
+If either field is empty:
+
+`Please enter both From and To.`
+
+### Street Without Building Number
+
+If a selected/typed street lacks building number:
+
+`Enter building number`
+
+### Address Not Found
+
+If location cannot be resolved:
+
+- show clear message
+- do not draw a route
+- keep user input editable
+
+### Road Graph Not Loaded
+
+If road data is still loading:
+
+`Municipality road network is still loading.`
+
+### No Connected Route
+
+If snapped points cannot be connected through the graph:
+
+`No connected municipality road route found.`
+
+## 13. Current Known Limitations
+
+- OSM pedestrian crossing data can be incomplete or mismatched.
+- Municipality traffic lights identify signalized intersections, not guaranteed pedestrian crossing geometry.
+- Address/place search depends on loaded municipality layers and Nominatim helper behavior.
+- Accident-risk scoring is not implemented.
+- Bicycle routing is not implemented.
+- The app does not validate live street closures.
+
+## 14. Future Work
+
+### Accident Map
+
+Add `מפת תאונות דרכים`.
 
 Purpose:
 
-- Identify accident-prone areas.
-- Show accident locations or zones on the map.
-- Reduce safety score for routes that pass near repeated accident locations.
-- Warn users when a route includes risky segments.
+- identify accident-prone areas
+- reduce score near repeated pedestrian accidents
+- warn users about risky route segments
 
-Possible accident-map logic:
+### Bicycle Safe Path
 
-- Accident near route: reduce score.
-- Multiple accidents in same area: stronger score reduction.
-- Pedestrian-related accident: stronger score reduction than general traffic accident.
-- Recent accident data: stronger impact than old data.
+Add bicycle routing based on Tel Aviv Municipality `שבילי אופניים`.
 
-## 13. Future Direction: Bicycle Safe Path
+Routing should prefer:
 
-Future versions should add Safe Path for bicycles.
+- official bicycle lanes
+- protected or separated bicycle paths
+- lower-risk intersections
 
-This should be based on Tel Aviv Municipality `שבילי אופניים` data.
+Routing should penalize:
 
-Purpose:
+- major roads without bicycle infrastructure
+- known bicycle accident areas
 
-- Help cyclists choose safer bicycle routes.
-- Prefer official bicycle infrastructure.
-- Avoid unsafe streets for cycling.
+### School Safety
 
-Future bicycle route logic:
+Add school-specific scoring.
 
-- Prefer official bicycle lanes.
-- Prefer protected or separated bicycle paths.
-- Avoid major roads without bicycle infrastructure.
-- Avoid complex intersections where possible.
-- Use bicycle accident history when available.
-- Show bicycle lanes on the map.
+Potential signals:
 
-Possible travel modes:
+- school proximity
+- משמרת זהב
+- time/day availability
+- safer crossings near school entrances
 
-1. `Walking`
-2. `Bicycle`
+## 15. Acceptance Criteria
 
-For bicycle mode, safety scoring should use bicycle-specific signals:
+### Routing
 
-- Bike lane exists: positive score.
-- Protected bike lane: stronger positive score.
-- No bike lane on major road: negative score.
-- Dangerous intersection: negative score.
-- Bicycle accident history: negative score.
+- `Fastest` returns the shortest graph-distance route.
+- `Prefer traffic lights` returns a route with better crossing score when available within reasonable added distance.
+- `Try harder` requires confirmation before allowing a longer route.
+- `Try harder` does not exceed `2x` fastest distance.
+- Route distance is calculated from graph edges, not straight-line distance.
+- Walking time is calculated from distance using `1.3 m/s`.
 
-## 14. Future Direction: משמרת זהב  
+### Search
 
-Future versions should add משמרת זהב road crossing near schools for children at spesific days and hours.
+- Hebrew input returns Hebrew suggestions.
+- English input returns English suggestions.
+- Same-name entities from different layers appear as separate suggestions.
+- Street-only selection requires building number.
+- Known school aliases resolve to the school, not to a street.
 
-This should be based on school data.
+### UI
 
-Purpose:
+- Only one route mode can be selected.
+- Result panel shows crossing counts.
+- OSM crossing warning appears when crossing data is used.
+- Map traffic-light markers are visible and are not generic intersection dots.
+- Map attribution labels are not visible in the UI.
 
-- Help children choose safer routes to school.
+### Data
 
-## 15. Current Implemented Behavior
+- Required GeoJSON files load successfully.
+- GeoJSON data files intended for repository storage are tracked through Git LFS.
 
-Current app behavior:
+## 16. Open Product Decisions
 
-- Accepts Hebrew and English addresses.
-- Provides autocomplete while typing.
-- Supports local fallback for `בית הספר גרץ`.
-- Allows only one route mode at a time: `Prefer traffic lights` or `Fastest`.
-- Draws route from start to destination using `roads.geojson`.
-- Calculates route distance from the Tel Aviv Municipality road graph.
-- Estimates walking time from route distance using walking speed.
-- Shows Tel Aviv traffic-light locations.
-- Displays traffic lights as traffic-light symbols.
-- Uses traffic-light locations to prefer signalized route segments in `Prefer traffic lights` mode.
-
-Current known limitations:
-
-- OpenStreetMap tiles are still used as visual background only.
-- Nominatim is still used as address-to-coordinate helper only.
-- Rich safety scoring is not implemented yet.
-- Route alternatives are not compared yet.
-- Traffic lights are only a simple proxy for safer crossings.
-- Accident map is not added yet.
-- Bicycle mode is not added yet.
-
-## 15. Open Product Decisions
-
-Questions to decide later:
-
-- How much extra walking time is acceptable for `Safest` mode?
-- Should schools have stronger safety weighting?
-- Should user age or mobility preference affect route scoring?
-- Should accident data be shown directly on the map or only used in scoring?
-- Should bicycle mode be a separate travel mode or a separate app section?
-- Which Tel Aviv Municipality address/places dataset should be added for exact address lookup?
+- Which additional municipality place layers should be included in first release search?
+- Should school-related routes receive stronger safety weighting?
+- Should accident data affect score only, map display only, or both?
+- Should bicycle routing be a mode inside the same app or a separate section?
+- Should user profile, age, or mobility needs change route scoring?

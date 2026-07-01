@@ -1,14 +1,27 @@
 const EARTH_RADIUS_METERS = 6371000;
 const TRAFFIC_LIGHT_SNAP_METERS = 35;
+const PEDESTRIAN_CROSSING_SNAP_METERS = 25;
+const REASONABLE_DETOUR_MULTIPLIER = 1.3;
+const TRY_HARDER_DETOUR_MULTIPLIER = 2;
 
 const ROUTE_MODE_WEIGHTS = {
   fastest: {
+    signalizedCrossingMultiplier: 1,
+    unsignalizedCrossingMultiplier: 1,
     trafficLightMultiplier: 1,
     regularMultiplier: 1,
   },
   safest: {
-    trafficLightMultiplier: 0.45,
-    regularMultiplier: 1.35,
+    signalizedCrossingMultiplier: 0.3,
+    unsignalizedCrossingMultiplier: 1.05,
+    trafficLightMultiplier: 0.1,
+    regularMultiplier: 1.6,
+  },
+  trafficLightsPriority: {
+    signalizedCrossingMultiplier: 0.18,
+    unsignalizedCrossingMultiplier: 0.8,
+    trafficLightMultiplier: 0.05,
+    regularMultiplier: 2.5,
   },
 };
 
@@ -48,6 +61,7 @@ function addNode(graph, point) {
       lat: point.lat,
       lon: point.lon,
       edges: [],
+      pedestrianCrossing: null,
       trafficLight: null,
     });
   }
@@ -174,7 +188,91 @@ function annotateTrafficLightNodes(graph, trafficLightsGeoJson) {
   }
 }
 
-export function buildRoadGraph(roadsGeoJson, trafficLightsGeoJson = null) {
+function isExplicitSignalizedPedestrianCrossing(crossing) {
+  const properties = crossing.properties || {};
+  const crossingValue = String(properties.crossing || "").toLowerCase();
+  const crossingSignals = String(
+    properties.crossingSignals || properties["crossing:signals"] || "",
+  ).toLowerCase();
+
+  return (
+    properties.trafficSignals === true ||
+    properties.traffic_signals === true ||
+    crossingValue.includes("traffic_signals") ||
+    crossingSignals === "yes"
+  );
+}
+
+function isSignalizedPedestrianCrossing(crossing, nearestTrafficLightDistance) {
+  return (
+    isExplicitSignalizedPedestrianCrossing(crossing) ||
+    nearestTrafficLightDistance <= TRAFFIC_LIGHT_SNAP_METERS
+  );
+}
+
+function nearestPoint(point, candidates) {
+  let nearest = null;
+  let nearestDistance = Infinity;
+
+  for (const candidate of candidates) {
+    const currentDistance = distanceMeters(point, candidate);
+
+    if (currentDistance < nearestDistance) {
+      nearest = candidate;
+      nearestDistance = currentDistance;
+    }
+  }
+
+  return {
+    distance: nearestDistance,
+    point: nearest,
+  };
+}
+
+function annotatePedestrianCrossingNodes(
+  graph,
+  pedestrianCrossingsGeoJson,
+  trafficLightsGeoJson,
+) {
+  const crossings = extractPointFeatures(pedestrianCrossingsGeoJson);
+  const trafficLights = extractPointFeatures(trafficLightsGeoJson);
+
+  for (const node of graph.nodes.values()) {
+    const nearestCrossing = nearestPoint(node, crossings);
+
+    if (
+      !nearestCrossing.point ||
+      nearestCrossing.distance > PEDESTRIAN_CROSSING_SNAP_METERS
+    ) {
+      continue;
+    }
+
+    const nearestTrafficLight = nearestPoint(nearestCrossing.point, trafficLights);
+    const signalized = isSignalizedPedestrianCrossing(
+      nearestCrossing.point,
+      nearestTrafficLight.distance,
+    );
+    const explicitlySignalized = isExplicitSignalizedPedestrianCrossing(
+      nearestCrossing.point,
+    );
+
+    node.pedestrianCrossing = {
+      distance: nearestCrossing.distance,
+      mismatchReason: explicitlySignalized
+        ? ""
+        : "Please note: crossing details here may not be fully verified.",
+      point: nearestCrossing.point,
+      possibleMismatch: !explicitlySignalized,
+      signalized,
+    };
+  }
+}
+
+export function buildRoadGraph(
+  roadsGeoJson,
+  trafficLightsGeoJson = null,
+  pedestrianCrossingsGeoJson = null,
+) {
   const graph = {
     nodes: new Map(),
   };
@@ -198,6 +296,14 @@ export function buildRoadGraph(roadsGeoJson, trafficLightsGeoJson = null) {
 
   if (trafficLightsGeoJson) {
     annotateTrafficLightNodes(graph, trafficLightsGeoJson);
+  }
+
+  if (pedestrianCrossingsGeoJson) {
+    annotatePedestrianCrossingNodes(
+      graph,
+      pedestrianCrossingsGeoJson,
+      trafficLightsGeoJson,
+    );
   }
 
   return graph;
@@ -229,6 +335,15 @@ function getModeWeights(routeMode) {
 function edgeCost(graph, fromNode, edge, routeMode) {
   const weights = getModeWeights(routeMode);
   const toNode = graph.nodes.get(edge.to);
+  const crossing = fromNode.pedestrianCrossing || toNode?.pedestrianCrossing;
+  if (crossing?.signalized) {
+    return edge.weight * weights.signalizedCrossingMultiplier;
+  }
+
+  if (crossing && !crossing.signalized) {
+    return edge.weight * weights.unsignalizedCrossingMultiplier;
+  }
+
   const hasTrafficLight = Boolean(fromNode.trafficLight || toNode?.trafficLight);
   const multiplier =
     hasTrafficLight
@@ -351,25 +466,86 @@ function routeTrafficLights(graph, pathKeys) {
   return trafficLights;
 }
 
-export function buildMunicipalityRoute(graph, start, end, routeMode = "safest") {
-  const snappedStart = findNearestNode(graph, start);
-  const snappedEnd = findNearestNode(graph, end);
+function pedestrianCrossingKey(crossing) {
+  return `${crossing.point.lon.toFixed(6)},${crossing.point.lat.toFixed(6)}`;
+}
 
-  if (!snappedStart.node || !snappedEnd.node) {
-    throw new Error("Municipality road network is empty.");
+function routePedestrianCrossings(graph, pathKeys) {
+  const seen = new Set();
+  const crossings = [];
+
+  for (const key of pathKeys) {
+    const node = graph.nodes.get(key);
+
+    if (!node?.pedestrianCrossing) {
+      continue;
+    }
+
+    const keyForCrossing = pedestrianCrossingKey(node.pedestrianCrossing);
+
+    if (seen.has(keyForCrossing)) {
+      continue;
+    }
+
+    seen.add(keyForCrossing);
+    crossings.push({
+      lat: node.pedestrianCrossing.point.lat,
+      lon: node.pedestrianCrossing.point.lon,
+      mismatchReason: node.pedestrianCrossing.mismatchReason,
+      possibleMismatch: node.pedestrianCrossing.possibleMismatch,
+      signalized: node.pedestrianCrossing.signalized,
+      properties: node.pedestrianCrossing.point.properties,
+    });
   }
 
-  const path = shortestPath(
-    graph,
-    snappedStart.node.key,
-    snappedEnd.node.key,
-    routeMode,
+  return crossings;
+}
+
+function routeCrossingMetrics(graph, pathKeys) {
+  const pedestrianCrossings = routePedestrianCrossings(graph, pathKeys);
+  const trafficLights = routeTrafficLights(graph, pathKeys);
+  const signalizedCrossings = pedestrianCrossings.filter(
+    (crossing) => crossing.signalized,
+  );
+  const unsignalizedCrossings = pedestrianCrossings.filter(
+    (crossing) => !crossing.signalized,
+  );
+  const possibleCrossingMismatches = unsignalizedCrossings.filter(
+    (crossing) => crossing.possibleMismatch,
   );
 
-  if (!path) {
-    throw new Error("No connected municipality road route found.");
-  }
+  return {
+    pedestrianCrossings,
+    possibleCrossingMismatchCount: possibleCrossingMismatches.length,
+    possibleCrossingMismatches,
+    signalizedCrossingCount: signalizedCrossings.length,
+    unsignalizedCrossingCount: unsignalizedCrossings.length,
+    trafficLightCount: trafficLights.length,
+  };
+}
 
+function crossingScore(metrics) {
+  return (
+    metrics.signalizedCrossingCount * 3 +
+    metrics.trafficLightCount * 2 -
+    metrics.unsignalizedCrossingCount
+  );
+}
+
+function hasBetterCrossingScore(candidateMetrics, baseMetrics) {
+  return crossingScore(candidateMetrics) > crossingScore(baseMetrics);
+}
+
+function buildRouteResult({
+  end,
+  path,
+  routeMode,
+  snappedEnd,
+  snappedStart,
+  start,
+  graph,
+  crossingPreferenceLimited = false,
+}) {
   const roadCoordinates = path.keys.map((key) => {
     const node = graph.nodes.get(key);
     return [node.lon, node.lat];
@@ -386,12 +562,76 @@ export function buildMunicipalityRoute(graph, start, end, routeMode = "safest") 
       path.distance + snappedStart.distance + snappedEnd.distance,
     routeMode,
     score: path.score,
+    crossingPreferenceLimited,
+    ...routeCrossingMetrics(graph, path.keys),
     trafficLights: routeTrafficLights(graph, path.keys),
     geometry: {
       type: "LineString",
       coordinates,
     },
   };
+}
+
+export function buildMunicipalityRoute(graph, start, end, routeMode = "safest") {
+  const snappedStart = findNearestNode(graph, start);
+  const snappedEnd = findNearestNode(graph, end);
+
+  if (!snappedStart.node || !snappedEnd.node) {
+    throw new Error("Municipality road network is empty.");
+  }
+
+  const fastestPath = shortestPath(
+    graph,
+    snappedStart.node.key,
+    snappedEnd.node.key,
+    "fastest",
+  );
+
+  if (!fastestPath) {
+    throw new Error("No connected municipality road route found.");
+  }
+
+  if (routeMode === "fastest") {
+    return buildRouteResult({
+      end,
+      graph,
+      path: fastestPath,
+      routeMode,
+      snappedEnd,
+      snappedStart,
+      start,
+    });
+  }
+
+  const preferredPath = shortestPath(
+    graph,
+    snappedStart.node.key,
+    snappedEnd.node.key,
+    "safest",
+  );
+
+  if (!preferredPath) {
+    throw new Error("No connected municipality road route found.");
+  }
+
+  const fastestMetrics = routeCrossingMetrics(graph, fastestPath.keys);
+  const preferredMetrics = routeCrossingMetrics(graph, preferredPath.keys);
+  const isReasonableDetour =
+    preferredPath.distance <= fastestPath.distance * REASONABLE_DETOUR_MULTIPLIER;
+  const shouldUsePreferred =
+    isReasonableDetour &&
+    hasBetterCrossingScore(preferredMetrics, fastestMetrics);
+
+  return buildRouteResult({
+    end,
+    graph,
+    path: shouldUsePreferred ? preferredPath : fastestPath,
+    routeMode,
+    snappedEnd,
+    snappedStart,
+    start,
+    crossingPreferenceLimited: !shouldUsePreferred,
+  });
 }
 
 export function buildTrafficLightRoute(graph, start, end) {
@@ -402,82 +642,41 @@ export function buildTrafficLightRoute(graph, start, end) {
     throw new Error("Municipality road network is empty.");
   }
 
-  const fromStart = runShortestPaths(
+  const fastestPath = shortestPath(
     graph,
     snappedStart.node.key,
+    snappedEnd.node.key,
     "fastest",
   );
-  const fromEnd = runShortestPaths(graph, snappedEnd.node.key, "fastest");
-
-  let bestTrafficLightNode = null;
-  let bestDistance = Infinity;
-
-  for (const node of graph.nodes.values()) {
-    if (!node.trafficLight) {
-      continue;
-    }
-
-    const distanceFromStart = fromStart.actualDistances.get(node.key);
-    const distanceFromEnd = fromEnd.actualDistances.get(node.key);
-
-    if (distanceFromStart === undefined || distanceFromEnd === undefined) {
-      continue;
-    }
-
-    const totalDistance = distanceFromStart + distanceFromEnd;
-
-    if (totalDistance < bestDistance) {
-      bestTrafficLightNode = node;
-      bestDistance = totalDistance;
-    }
-  }
-
-  if (!bestTrafficLightNode) {
-    throw new Error("No traffic-light route was found for these addresses.");
-  }
-
-  const pathToTrafficLight = reconstructPath(
-    fromStart.previous,
+  const tryHarderPath = shortestPath(
+    graph,
     snappedStart.node.key,
-    bestTrafficLightNode.key,
-  );
-  const pathFromTrafficLight = reconstructPath(
-    fromEnd.previous,
     snappedEnd.node.key,
-    bestTrafficLightNode.key,
-  )?.reverse();
+    "trafficLightsPriority",
+  );
 
-  if (!pathToTrafficLight || !pathFromTrafficLight) {
-    throw new Error("No traffic-light route was found for these addresses.");
+  if (!fastestPath || !tryHarderPath) {
+    throw new Error("No traffic-light crossing route was found for these addresses.");
   }
 
-  const pathKeys = [
-    ...pathToTrafficLight,
-    ...pathFromTrafficLight.slice(1),
-  ];
-  const trafficLights = routeTrafficLights(graph, pathKeys);
+  const fastestMetrics = routeCrossingMetrics(graph, fastestPath.keys);
+  const tryHarderMetrics = routeCrossingMetrics(graph, tryHarderPath.keys);
+  const allowedDistance = fastestPath.distance * TRY_HARDER_DETOUR_MULTIPLIER;
 
-  if (!trafficLights.length) {
-    throw new Error("No traffic-light route was found for these addresses.");
+  if (
+    tryHarderPath.distance > allowedDistance ||
+    !hasBetterCrossingScore(tryHarderMetrics, fastestMetrics)
+  ) {
+    throw new Error("No better traffic-light crossing route was found for these addresses.");
   }
 
-  const roadCoordinates = pathKeys.map((key) => {
-    const node = graph.nodes.get(key);
-    return [node.lon, node.lat];
-  });
-
-  return {
-    distanceMeters: bestDistance + snappedStart.distance + snappedEnd.distance,
+  return buildRouteResult({
+    end,
+    graph,
+    path: tryHarderPath,
     routeMode: "trafficLightsPriority",
-    score: bestDistance,
-    trafficLights,
-    geometry: {
-      type: "LineString",
-      coordinates: [
-        [start.lon, start.lat],
-        ...roadCoordinates,
-        [end.lon, end.lat],
-      ],
-    },
-  };
+    snappedEnd,
+    snappedStart,
+    start,
+  });
 }
