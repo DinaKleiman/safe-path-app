@@ -81,10 +81,31 @@
 
 **[H-2] `buildTrafficLightRoute` compares result against fastest route metrics, not the safest route the user was already shown**
 
+Plain issue description:
+
+- When the user clicks `Try harder`, the app must decide whether the new route is better than the route currently shown to the user.
+- The concern was that the app might compare `Try harder` against `Fastest`, even when the user was actually looking at `Prefer traffic lights`.
+- The correct comparison is: `Try harder route` versus `currently displayed route`.
+- Example: if `Prefer traffic lights` already shows 3 good crossings, and `Try harder` finds 4 good crossings, the app should compare 4 versus 3, not 4 versus the fastest route.
+
 - Try Harder is triggered because the `safest` route has 0 signalized crossings AND `crossingPreferenceLimited`.
 - `buildTrafficLightRoute` internally recalculates the fastest path and compares `hasBetterCrossingScore(tryHarderMetrics, fastestMetrics)`.
 - The logically correct baseline for "is this better?" is the `safest` route the user was shown — not the fastest.
 - In practice both `fastest` and `safest` will have 0 signalized crossings when Try Harder triggers, so the results likely match. But if `fastest` somehow has a better crossing score than the `safest` result shown, Try Harder could silently reject a route that was actually an improvement.
+
+Codex follow-up after fix:
+
+- H-2 is partially fixed by adding `displayedPreferredPath()` and using `baseMetrics` from the displayed route.
+- `buildTrafficLightRoute` calls `displayedPreferredPath(graph, startKey, endKey, fastestPath)`, which recalculates the preferred route before deciding the comparison baseline.
+- If the normal displayed route fell back to fastest because the preferred route was not better or was not reasonable, `displayedPreferredPath()` returns `fastestPath`; comparing Try Harder against fastest is correct in that edge case because fastest is what the user saw.
+- If the normal displayed route used the preferred route, `displayedPreferredPath()` returns that preferred path; comparing Try Harder against preferred route metrics is also correct.
+- Codex opinion: no remaining H-2 logic defect is present after this fix. The recalculation is acceptable because it is deterministic for the same graph/start/end/mode inputs. A future refactor could pass the already displayed route into `buildTrafficLightRoute` to avoid recomputation, but that would be a performance/code-clarity improvement, not a correctness fix.
+
+Conclusion:
+
+- H-2 is logically fixed.
+- Current behavior compares `Try harder` against the route the user saw.
+- No additional code fix is required for this issue.
 
 ---
 

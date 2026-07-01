@@ -20,7 +20,7 @@ Scope of this pass:
 | C-4 OSM warning always shown | Agree | Warning is now shown only when the selected route has pedestrian crossing data. Playwright helper no longer assumes the warning is always visible. |
 | C-5 Try Harder disconnected graph uses wrong error | Agree | `buildTrafficLightRoute` now throws `No connected municipality road route found.` when the graph cannot connect start and destination. |
 | C-6 user-facing header contains debug/test copy | Agree | Replaced `Test: enter A and B...` with product copy: `Prefer walking routes through signalized crossings.` |
-| H-2 Try Harder compares against fastest route, not displayed route | Agree | `Try harder` now compares candidate improvement against the route the user was shown by normal `Prefer traffic lights`, not only against fastest. |
+| H-2 Try Harder compares against fastest route, not displayed route | Agree | Issue meaning: when user clicks `Try harder`, the app must compare the new route against the route currently shown to the user, not always against `Fastest`. Fixed: `Try harder` now compares candidate improvement against the displayed route. Conclusion: no remaining H-2 logic defect; recalculating the displayed route is deterministic and acceptable. |
 
 ## Additional Agreed Fixes
 
