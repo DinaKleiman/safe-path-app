@@ -14,7 +14,7 @@ export async function prepareApp(page, { geocoderResults = [] } = {}) {
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Safe Path" })).toBeVisible();
-  await expect(page.getByText("Traffic lights: 495")).toBeVisible();
+  await expect(page.locator(".leaflet-container")).toBeVisible();
 }
 
 export function fromInput(page) {

@@ -32,7 +32,7 @@ test.describe("mobile experience", () => {
 
     await expect(page.getByText(/Distance:\s+\d+\.\d{2} km/)).toBeVisible();
     await expect(page.getByText(/Estimated walking time:\s+\d+ min/)).toBeVisible();
-    await expect(page.getByText("Route: shown")).toBeVisible();
+    await expect(page.locator(".leaflet-overlay-pane svg path").first()).toBeVisible();
     await expect(page.locator(".leaflet-container")).toBeVisible();
   });
 });

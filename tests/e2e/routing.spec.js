@@ -46,7 +46,7 @@ test.describe("desktop route UI", () => {
     await expect(page.getByText(/Signalized pedestrian crossings:\s+\d+/)).toBeVisible();
     await expect(page.getByText(/Non-signalized pedestrian crossings:\s+\d+/)).toBeVisible();
     await expect(page.getByText("This route partly uses open-source pedestrian crossing data and may contain mismatches.")).toBeVisible();
-    await expect(page.getByText("Route: shown")).toBeVisible();
+    await expect(page.locator(".leaflet-overlay-pane svg path").first()).toBeVisible();
   });
 
   test("prefer traffic lights route has more traffic lights than fastest for known A/B", async ({ page }) => {
@@ -122,8 +122,6 @@ test.describe("map rendering", () => {
     await expect(page.locator(".traffic-light-marker").first()).toBeVisible();
     await expect(page.locator(".route-traffic-light-marker").first()).toBeVisible();
     await expect(page.locator(".leaflet-overlay-pane svg path").first()).toBeVisible();
-    await expect(page.getByText("Traffic lights: 495")).toBeVisible();
-    await expect(page.getByText(/Route traffic lights:\s+\d+/)).toBeVisible();
     await expect(page.locator(".leaflet-control-attribution")).toHaveCount(0);
   });
 });

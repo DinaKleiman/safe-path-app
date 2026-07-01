@@ -82,7 +82,11 @@ const ROUTE_MODES = [
 ];
 
 function normalizeAddress(address) {
-  return address.trim().replace(/\s+/g, " ");
+  return address
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/([^\d\s])(\d)/g, "$1 $2")
+    .replace(/(\d)([^\d\s])/g, "$1 $2");
 }
 
 function normalizeHebrewAddress(address) {
@@ -279,6 +283,7 @@ function AddressField({
   municipalitySearchIndex,
   value,
   onChange,
+  onSubmit,
   placeholder,
 }) {
   const [suggestions, setSuggestions] = useState([]);
@@ -378,9 +383,14 @@ function AddressField({
             );
           }
 
-          if (event.key === "Enter" && showSuggestions && activeIndex >= 0) {
-            event.preventDefault();
-            handleSelect(suggestions[activeIndex]);
+          if (event.key === "Enter") {
+            if (showSuggestions && activeIndex >= 0) {
+              event.preventDefault();
+              handleSelect(suggestions[activeIndex]);
+            } else if (!showSuggestions || suggestions.length === 0) {
+              event.preventDefault();
+              onSubmit?.();
+            }
           }
 
           if (event.key === "Escape") {
@@ -745,6 +755,7 @@ export default function App() {
               municipalitySearchIndex={municipalitySearchIndex}
               value={from}
               onChange={setFrom}
+              onSubmit={handleFindRoute}
               placeholder="Example: Dizengoff Center"
             />
 
@@ -754,6 +765,7 @@ export default function App() {
               municipalitySearchIndex={municipalitySearchIndex}
               value={to}
               onChange={setTo}
+              onSubmit={handleFindRoute}
               placeholder="Example: Tel Aviv Port"
             />
 

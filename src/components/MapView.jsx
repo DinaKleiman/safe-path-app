@@ -43,7 +43,7 @@ const crossingMismatchIcon = L.divIcon({
   popupAnchor: [0, -6],
 });
 
-function trafficLightPoint(feature, latlng) {
+function trafficLightPoint(_feature, latlng) {
   return L.marker(latlng, {
     icon: trafficLightIcon,
   });
@@ -190,15 +190,6 @@ export default function MapView({ route }) {
           <p>Walking route + municipality traffic-light locations</p>
         </div>
 
-        <div className="map-stats">
-          <span>
-            Traffic lights: {signals ? signals.features?.length ?? 0 : "..."}
-          </span>
-          <span>
-            Route traffic lights: {route?.properties?.trafficLightCount ?? 0}
-          </span>
-          <span>Route: {route ? "shown" : "not yet"}</span>
-        </div>
       </div>
 
       {error && <div className="map-error">Error: {error}</div>}

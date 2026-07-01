@@ -135,7 +135,8 @@
 }
 
 .suggestion-option:hover,
-.suggestion-option:focus {
+.suggestion-option:focus,
+.suggestion-option[aria-selected="true"] {
   background: #eef6f5;
   outline: none;
 }
