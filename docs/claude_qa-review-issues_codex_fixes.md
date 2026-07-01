@@ -22,19 +22,25 @@ Scope of this pass:
 | C-6 user-facing header contains debug/test copy | Agree | Replaced `Test: enter A and B...` with product copy: `Prefer walking routes through signalized crossings.` |
 | H-2 Try Harder compares against fastest route, not displayed route | Agree | `Try harder` now compares candidate improvement against the route the user was shown by normal `Prefer traffic lights`, not only against fastest. |
 
+## Additional Agreed Fixes
+
+These were fixed after the first critical/high pass.
+
+| Issue | Codex position | Explanation |
+| --- | --- | --- |
+| M-1 test-case markdown expected distance is outdated | Agree | Fixed. `tests/vitest-logic-test-cases.md` now describes expected behavior instead of stale exact route values. |
+| M-3 exact route values in tests are brittle | Agree | Fixed for the real-data known-route test. It now checks relative route behavior, reasonable distance, traffic-light improvement, and non-signalized crossing reduction instead of exact distance/count values. |
+| M-4 no test for Try Harder remaining non-signalized warning | Agree | Fixed. Playwright now asserts the warning when Try Harder returns a route that still includes non-signalized crossings. |
+| M-6 tests/code use internal route mode id `safest` | Agree | Fixed. Internal route mode id is now `preferTrafficLights`. |
+| L-1 unused `src/components/RoutePanel.jsx` | Agree | Fixed. Removed the unused file. |
+| L-2 unused `src/utils/routing.js` | Agree | Fixed. Removed the unused file. |
+| L-3 unused `src/utils/safetyScore.js` | Agree | Fixed. Removed the unused placeholder. |
+
 ## Remaining Issues
 
 | Issue | Codex position | Explanation |
 | --- | --- | --- |
 | H-1 mismatch count equals non-signalized crossings | Partly agree | With the latest product decision, yellow markers and the `Crossings without confirmed traffic lights` count intentionally represent non-signalized OSM pedestrian crossings on the selected route. The label was changed for UX clarity; the marker logic was not changed. |
-| M-1 test-case markdown expected distance is outdated | Agree | `tests/vitest-logic-test-cases.md` still describes old expected values. I did not edit markdown docs in this pass because the requested scope was code-only/no spec changes. |
-| M-3 exact route values in tests are brittle | Agree | Some tests still assert exact distance/count values. Long-term, these should focus more on business rules, ranges, and relative improvement. |
-| M-4 no test for Try Harder remaining non-signalized warning | Agree | Still needs a stable route fixture where Try Harder succeeds while non-signalized crossings remain, so the warning can be asserted. |
-| M-5 Playwright helper always asserts OSM warning | Agree | Fixed. `calculateRoute` no longer asserts the OSM warning automatically. Individual tests must assert it when relevant. |
-| M-6 tests/code use internal route mode id `safest` | Agree | Still open. This is naming cleanup: product language is `Prefer traffic lights`, while internals still use `safest`. |
-| L-1 unused `src/components/RoutePanel.jsx` | Agree | Still open. It appears to be dead code and can be removed in a cleanup pass. |
-| L-2 unused `src/utils/routing.js` | Agree | Still open. It appears to be dead code and can be removed in a cleanup pass. |
-| L-3 unused `src/utils/safetyScore.js` | Agree | Still open. Accident/safety scoring is out of scope, so the placeholder can be removed or clearly isolated. |
 
 ## Verification
 

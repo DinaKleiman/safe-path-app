@@ -11,7 +11,7 @@ const ROUTE_MODE_WEIGHTS = {
     trafficLightMultiplier: 1,
     regularMultiplier: 1,
   },
-  safest: {
+  preferTrafficLights: {
     signalizedCrossingMultiplier: 0.3,
     unsignalizedCrossingMultiplier: 2.2,
     trafficLightMultiplier: 0.7,
@@ -329,7 +329,7 @@ export function findNearestNode(graph, point) {
 }
 
 function getModeWeights(routeMode) {
-  return ROUTE_MODE_WEIGHTS[routeMode] || ROUTE_MODE_WEIGHTS.safest;
+  return ROUTE_MODE_WEIGHTS[routeMode] || ROUTE_MODE_WEIGHTS.preferTrafficLights;
 }
 
 function edgeCost(graph, fromNode, edge, routeMode) {
@@ -555,7 +555,12 @@ function hasUsefulTryHarderImprovement(candidateMetrics, baseMetrics) {
 }
 
 function displayedPreferredPath(graph, startKey, endKey, fastestPath) {
-  const preferredPath = shortestPath(graph, startKey, endKey, "safest");
+  const preferredPath = shortestPath(
+    graph,
+    startKey,
+    endKey,
+    "preferTrafficLights",
+  );
 
   if (!preferredPath) {
     return null;
@@ -608,7 +613,12 @@ function buildRouteResult({
   };
 }
 
-export function buildMunicipalityRoute(graph, start, end, routeMode = "safest") {
+export function buildMunicipalityRoute(
+  graph,
+  start,
+  end,
+  routeMode = "preferTrafficLights",
+) {
   const snappedStart = findNearestNode(graph, start);
   const snappedEnd = findNearestNode(graph, end);
 
@@ -643,7 +653,7 @@ export function buildMunicipalityRoute(graph, start, end, routeMode = "safest") 
     graph,
     snappedStart.node.key,
     snappedEnd.node.key,
-    "safest",
+    "preferTrafficLights",
   );
 
   if (!preferredPath) {

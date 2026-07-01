@@ -44,9 +44,9 @@ These tests validate app logic without a browser. They should run with `npm test
 | ID | Area | Scenario | Steps | Expected Result | Status |
 | --- | --- | --- | --- | --- | --- |
 | VIT-POS-001 | Routing | Fastest route is calculated | Build graph from municipality roads. Calculate route from `משה שרת 80` to `Tel Aviv Port` with `fastest`. | Route is returned with valid LineString geometry, distance, and traffic-light count. | Passed |
-| VIT-POS-002 | Routing | Prefer traffic lights route is calculated | Build graph from municipality roads and traffic lights. Calculate same route with `safest`. | Route is returned and includes more traffic-light-connected points than `fastest`. | Passed |
-| VIT-POS-003 | Routing | Fastest route is shorter | Compare `fastest` and `safest` for `משה שרת 80` to `Tel Aviv Port`. | `fastest.distanceMeters < safest.distanceMeters`. | Passed |
-| VIT-POS-004 | Routing | Prefer traffic lights has more traffic lights | Compare traffic-light count for `fastest` and `safest`. | `safest.trafficLights.length > fastest.trafficLights.length`. | Passed |
+| VIT-POS-002 | Routing | Prefer traffic lights route is calculated | Build graph from municipality roads and traffic lights. Calculate same route with `preferTrafficLights`. | Route is returned and includes more traffic-light-connected points than `fastest`. | Passed |
+| VIT-POS-003 | Routing | Fastest route is shorter | Compare `fastest` and `preferTrafficLights` for `משה שרת 80` to `Tel Aviv Port`. | `fastest.distanceMeters < preferTrafficLights.distanceMeters`. | Passed |
+| VIT-POS-004 | Routing | Prefer traffic lights has more traffic lights | Compare traffic-light count for `fastest` and `preferTrafficLights`. | `preferTrafficLights.trafficLights.length > fastest.trafficLights.length`. | Passed |
 | VIT-POS-005 | Routing | Try harder forces a traffic-light route | Build graph with a short direct route and a longer route through a traffic light. Call forced traffic-light routing. | Returned route includes at least one traffic light. | Passed |
 | VIT-POS-006 | Address search | Hebrew school prefix resolves to a school | Search for `בה״ס אהבת ציון`, `ביהס אהבת ציון`, and `בית ספר אהבת ציון`. | All variants resolve to `בית ספר אהבת ציון, כהנשטם 16`. | Passed |
 | VIT-POS-007 | Address search | Hebrew and English address search both work | Search for `משה שרת 80` and `Sharet 80`. | Hebrew result is `שרת משה 80`; English result is `SHARET 80`. | Passed |
@@ -79,5 +79,5 @@ These tests validate app logic without a browser. They should run with `npm test
 | VIT-DATA-002 | Traffic lights | Traffic-light file structure | Load `public/data/signalized_intersections.geojson`. | All features are Points. | Passed |
 | VIT-DATA-003 | Graph | Real graph size | Build graph from municipality roads. | Graph has more than 10,000 nodes. | Passed |
 | VIT-DATA-004 | Traffic lights | Traffic lights attach to graph | Build graph with traffic-light data. | More than 495 graph nodes are annotated with nearby traffic lights. | Passed |
-| VIT-DATA-005 | Known route | Stable known route result | Route `משה שרת 80` to `Tel Aviv Port`. | `fastest` is about `2325m` and `safest` is about `2842m`. | Passed |
+| VIT-DATA-005 | Known route | Stable known route behavior | Route `משה שרת 80` to `Tel Aviv Port`. | `preferTrafficLights` stays within the reasonable-distance limit, has more traffic-light-connected points than `fastest`, and has fewer non-signalized crossings. | Passed |
 | VIT-DATA-006 | Known route | Short Sharett to Belkind forced traffic-light route | Route `84 Moshe Sharett` to `1 Belkind` with normal and forced traffic-light routing. | Normal route has `0` traffic lights; forced route has at least `1` traffic light and is longer. | Passed |

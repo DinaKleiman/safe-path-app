@@ -70,7 +70,7 @@ const WALKING_SPEED_METERS_PER_SECOND = 1.3;
 
 const ROUTE_MODES = [
   {
-    id: "safest",
+    id: "preferTrafficLights",
     label: "Prefer traffic lights",
     description: "Accept a longer route for more signalized crossings",
   },
@@ -447,7 +447,7 @@ function AddressField({
 export default function App() {
   const [from, setFrom] = useState("Dizengoff Center, Tel Aviv");
   const [to, setTo] = useState("Tel Aviv Port");
-  const [routeMode, setRouteMode] = useState("safest");
+  const [routeMode, setRouteMode] = useState("preferTrafficLights");
   const [roadGraph, setRoadGraph] = useState(null);
   const [roadGraphError, setRoadGraphError] = useState("");
   const [municipalitySearchIndex, setMunicipalitySearchIndex] = useState(null);
@@ -851,7 +851,7 @@ export default function App() {
                   <strong>Non-signalized pedestrian crossings:</strong>{" "}
                   {routeSummary.unsignalizedCrossingCount}
                 </p>
-                {routeSummary.routeMode === "safest" &&
+                {routeSummary.routeMode === "preferTrafficLights" &&
                   routeSummary.crossingPreferenceLimited &&
                   routeSummary.signalizedCrossingCount === 0 && (
                     <div className="route-note">

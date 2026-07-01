@@ -86,7 +86,7 @@ describe("municipality routing primitives", () => {
 });
 
 describe("route mode logic", () => {
-  it("uses distance only for fastest and traffic-light preference for safest", () => {
+  it("uses distance only for fastest and traffic-light preference for Prefer traffic lights", () => {
     const roads = {
       type: "FeatureCollection",
       features: [
@@ -123,11 +123,16 @@ describe("route mode logic", () => {
     const end = point(34.775, 32.09);
 
     const fastest = buildMunicipalityRoute(graph, start, end, "fastest");
-    const safest = buildMunicipalityRoute(graph, start, end, "safest");
+    const preferTrafficLights = buildMunicipalityRoute(
+      graph,
+      start,
+      end,
+      "preferTrafficLights",
+    );
 
-    expect(fastest.distanceMeters).toBeLessThan(safest.distanceMeters);
+    expect(fastest.distanceMeters).toBeLessThan(preferTrafficLights.distanceMeters);
     expect(fastest.trafficLights).toHaveLength(0);
-    expect(safest.trafficLights).toHaveLength(3);
+    expect(preferTrafficLights.trafficLights).toHaveLength(3);
   });
 
   it("penalizes non-signalized pedestrian crossings in traffic-light preference mode", () => {
@@ -166,12 +171,17 @@ describe("route mode logic", () => {
     const end = point(34.775, 32.09);
 
     const fastest = buildMunicipalityRoute(graph, start, end, "fastest");
-    const safest = buildMunicipalityRoute(graph, start, end, "safest");
+    const preferTrafficLights = buildMunicipalityRoute(
+      graph,
+      start,
+      end,
+      "preferTrafficLights",
+    );
 
     expect(fastest.unsignalizedCrossingCount).toBe(1);
-    expect(safest.signalizedCrossingCount).toBeGreaterThan(0);
-    expect(safest.unsignalizedCrossingCount).toBe(0);
-    expect(safest.distanceMeters).toBeGreaterThan(fastest.distanceMeters);
+    expect(preferTrafficLights.signalizedCrossingCount).toBeGreaterThan(0);
+    expect(preferTrafficLights.unsignalizedCrossingCount).toBe(0);
+    expect(preferTrafficLights.distanceMeters).toBeGreaterThan(fastest.distanceMeters);
   });
 
   it("falls back to traffic-light preference for unknown route modes", () => {
@@ -313,23 +323,27 @@ describe("Tel Aviv municipality data integration", () => {
       telAvivPort,
       "fastest",
     );
-    const safest = buildMunicipalityRoute(
+    const preferTrafficLights = buildMunicipalityRoute(
       graph,
       mosheSharett80,
       telAvivPort,
-      "safest",
+      "preferTrafficLights",
     );
 
-    expect(fastest.distanceMeters).toBeLessThan(safest.distanceMeters);
-    expect(fastest.trafficLights).toHaveLength(6);
-    expect(safest.trafficLights).toHaveLength(13);
-    expect(Math.round(fastest.distanceMeters)).toBe(2325);
-    expect(safest.possibleCrossingMismatchCount).toBe(1);
-    expect(safest.possibleCrossingMismatches).toHaveLength(1);
-    expect(safest.unsignalizedCrossingCount).toBeLessThan(
+    expect(fastest.distanceMeters).toBeLessThan(preferTrafficLights.distanceMeters);
+    expect(preferTrafficLights.distanceMeters).toBeLessThanOrEqual(
+      fastest.distanceMeters * 1.3,
+    );
+    expect(fastest.trafficLights.length).toBeGreaterThan(0);
+    expect(preferTrafficLights.trafficLights.length).toBeGreaterThan(
+      fastest.trafficLights.length,
+    );
+    expect(preferTrafficLights.possibleCrossingMismatchCount).toBe(
+      preferTrafficLights.possibleCrossingMismatches.length,
+    );
+    expect(preferTrafficLights.unsignalizedCrossingCount).toBeLessThan(
       fastest.unsignalizedCrossingCount,
     );
-    expect(Math.round(safest.distanceMeters)).toBe(2699);
   });
 
   it("finds a forced traffic-light route for a short Sharett to Belkind route", () => {
@@ -340,7 +354,7 @@ describe("Tel Aviv municipality data integration", () => {
       graph,
       sharett84,
       belkind1,
-      "safest",
+      "preferTrafficLights",
     );
     expect(regular.signalizedCrossingCount).toBe(0);
     expect(() => buildTrafficLightRoute(graph, sharett84, belkind1)).toThrow(

@@ -93,7 +93,7 @@ Latest Google Maps benchmark run:
 | ROUTE-004 | 8 | Route cannot detour unreasonably in normal mode | Vitest | Reasonable-detour logic tested indirectly. | Partial | Add explicit fixture where better signalized route is over `1.3x` and normal mode rejects it. |
 | ROUTE-005 | 9 | `Try harder` requires confirmation | Playwright | Updated test checks confirmation and `Do it anyway`. | Covered / Passing | None. |
 | ROUTE-006 | 9 | `Try harder` max distance is `2x` fastest | Vitest | Forced route distance checked in routing tests. | Covered / Passing | Add UI assertion if route summary exposes comparison later. |
-| ROUTE-007 | 9 | Try Harder warning appears when non-signalized crossings remain | None | Message exists in app logic but no stable UI test. | Gap | Add fixture or known route that still has non-signalized crossings after Try Harder. |
+| ROUTE-007 | 9 | Try Harder warning appears when non-signalized crossings remain | Playwright | Try Harder route test asserts the remaining non-signalized crossing warning. | Covered / Passing | None. |
 | ROUTE-008 | 7 | Same start and destination distance is zero | Vitest | `calculates zero distance for same coordinate`. | Covered / Passing | None. |
 | ROUTE-009 | 7 | Start/end snap to graph nodes and include snap distance | Vitest | Start/end not exact graph nodes test. | Covered / Passing | None. |
 | ROUTE-010 | 12 | Empty or disconnected graph returns clear error | Vitest | Empty road graph test. | Covered / Passing | Add disconnected graph test if disconnected data becomes realistic. |

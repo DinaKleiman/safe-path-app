@@ -59,7 +59,7 @@ test.describe("desktop route UI", () => {
       await routeMetric(page, "Non-signalized pedestrian crossings"),
     );
 
-    await calculateRoute(page, "משה שרת 80", "Tel Aviv Port", "safest");
+    await calculateRoute(page, "משה שרת 80", "Tel Aviv Port", "preferTrafficLights");
     const saferLights = Number(await routeMetric(page, "Traffic lights on route"));
     const saferSignalizedCrossings = Number(
       await routeMetric(page, "Signalized pedestrian crossings"),
@@ -94,7 +94,7 @@ test.describe("desktop route UI", () => {
   });
 
   test("Try harder recalculates a route through traffic lights when available", async ({ page }) => {
-    await calculateRoute(page, "שרת משה 84", "בלקינד 1", "safest");
+    await calculateRoute(page, "סמטת החרמון 7", "כפר גלעדי 32", "preferTrafficLights");
 
     await expect(page.getByText("No better traffic-light crossing route was found within adding reasonable distance.")).toBeVisible();
     await page.getByRole("button", { name: "Try harder" }).click();
@@ -105,7 +105,15 @@ test.describe("desktop route UI", () => {
     const tryHarderSignalizedCrossings = Number(
       await routeMetric(page, "Signalized pedestrian crossings"),
     );
+    const tryHarderUnsignalizedCrossings = Number(
+      await routeMetric(page, "Non-signalized pedestrian crossings"),
+    );
+
     expect(tryHarderSignalizedCrossings).toBeGreaterThan(0);
+    expect(tryHarderUnsignalizedCrossings).toBeGreaterThan(0);
+    await expect(page.getByText(
+      "Please note: this route may still include crossings without traffic lights.",
+    )).toBeVisible();
   });
 });
 
