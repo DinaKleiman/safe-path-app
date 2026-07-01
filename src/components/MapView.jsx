@@ -3,6 +3,7 @@ import {
   CircleMarker,
   GeoJSON,
   MapContainer,
+  Marker,
   Popup,
   TileLayer,
   useMap,
@@ -21,6 +22,14 @@ const trafficLightIcon = L.divIcon({
       <span class="traffic-light-dot traffic-light-green"></span>
     </span>
   `,
+  iconSize: [6, 9],
+  iconAnchor: [3, 5],
+  popupAnchor: [0, -5],
+});
+
+const routeTrafficLightIcon = L.divIcon({
+  className: "traffic-light-marker route-traffic-light-marker",
+  html: trafficLightIcon.options.html,
   iconSize: [6, 9],
   iconAnchor: [3, 5],
   popupAnchor: [0, -5],
@@ -112,19 +121,13 @@ function RouteTrafficLights({ route }) {
   const trafficLights = route?.properties?.trafficLights || [];
 
   return trafficLights.map((trafficLight) => (
-    <CircleMarker
-      center={[trafficLight.lat, trafficLight.lon]}
+    <Marker
+      icon={routeTrafficLightIcon}
       key={`${trafficLight.lon}-${trafficLight.lat}`}
-      radius={5}
-      pathOptions={{
-        color: "#f59e0b",
-        fillColor: "#fef3c7",
-        fillOpacity: 0.95,
-        weight: 2,
-      }}
+      position={[trafficLight.lat, trafficLight.lon]}
     >
       <Popup>Traffic light used by selected route</Popup>
-    </CircleMarker>
+    </Marker>
   ));
 }
 

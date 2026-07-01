@@ -159,7 +159,7 @@ test.describe("Google Maps walking benchmark", () => {
         graph,
         benchmarkCase.start,
         benchmarkCase.end,
-        "safest",
+        "preferTrafficLights",
       );
       const appPreferKm = appPreferRoute.distanceMeters / 1000;
 

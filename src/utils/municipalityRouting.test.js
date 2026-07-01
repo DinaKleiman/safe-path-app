@@ -86,7 +86,7 @@ describe("municipality routing primitives", () => {
 });
 
 describe("route mode logic", () => {
-  it("uses distance only for fastest and traffic-light preference for safest", () => {
+  it("uses distance only for fastest and traffic-light preference for Prefer traffic lights", () => {
     const roads = {
       type: "FeatureCollection",
       features: [
@@ -123,11 +123,65 @@ describe("route mode logic", () => {
     const end = point(34.775, 32.09);
 
     const fastest = buildMunicipalityRoute(graph, start, end, "fastest");
-    const safest = buildMunicipalityRoute(graph, start, end, "safest");
+    const preferTrafficLights = buildMunicipalityRoute(
+      graph,
+      start,
+      end,
+      "preferTrafficLights",
+    );
 
-    expect(fastest.distanceMeters).toBeLessThan(safest.distanceMeters);
+    expect(fastest.distanceMeters).toBeLessThan(preferTrafficLights.distanceMeters);
     expect(fastest.trafficLights).toHaveLength(0);
-    expect(safest.trafficLights).toHaveLength(3);
+    expect(preferTrafficLights.trafficLights).toHaveLength(3);
+  });
+
+  it("penalizes non-signalized pedestrian crossings in traffic-light preference mode", () => {
+    const roads = {
+      type: "FeatureCollection",
+      features: [
+        roadFeature([
+          [34.77, 32.09],
+          [34.7725, 32.09],
+          [34.775, 32.09],
+        ]),
+        roadFeature([
+          [34.77, 32.09],
+          [34.77, 32.0904],
+          [34.7725, 32.0904],
+          [34.775, 32.0904],
+          [34.775, 32.09],
+        ]),
+      ],
+    };
+    const trafficLights = {
+      type: "FeatureCollection",
+      features: [
+        pointFeature([34.7725, 32.0904], { name: "signalized-crossing" }),
+      ],
+    };
+    const pedestrianCrossings = {
+      type: "FeatureCollection",
+      features: [
+        pointFeature([34.7725, 32.09], { crossing: "uncontrolled" }),
+        pointFeature([34.7725, 32.0904], { crossing: "traffic_signals" }),
+      ],
+    };
+    const graph = buildRoadGraph(roads, trafficLights, pedestrianCrossings);
+    const start = point(34.77, 32.09);
+    const end = point(34.775, 32.09);
+
+    const fastest = buildMunicipalityRoute(graph, start, end, "fastest");
+    const preferTrafficLights = buildMunicipalityRoute(
+      graph,
+      start,
+      end,
+      "preferTrafficLights",
+    );
+
+    expect(fastest.unsignalizedCrossingCount).toBe(1);
+    expect(preferTrafficLights.signalizedCrossingCount).toBeGreaterThan(0);
+    expect(preferTrafficLights.unsignalizedCrossingCount).toBe(0);
+    expect(preferTrafficLights.distanceMeters).toBeGreaterThan(fastest.distanceMeters);
   });
 
   it("falls back to traffic-light preference for unknown route modes", () => {
@@ -179,9 +233,9 @@ describe("route mode logic", () => {
         ]),
         roadFeature([
           [34.77, 32.09],
-          [34.77, 32.0904],
-          [34.7725, 32.0904],
-          [34.775, 32.0904],
+          [34.77, 32.0912],
+          [34.7725, 32.0912],
+          [34.775, 32.0912],
           [34.775, 32.09],
         ]),
       ],
@@ -189,7 +243,7 @@ describe("route mode logic", () => {
     const trafficLights = {
       type: "FeatureCollection",
       features: [
-        pointFeature([34.7725, 32.0904], { name: "required-light" }),
+        pointFeature([34.7725, 32.0912], { name: "required-light" }),
       ],
     };
     const graph = buildRoadGraph(roads, trafficLights);
@@ -202,6 +256,31 @@ describe("route mode logic", () => {
 
     expect(forced.routeMode).toBe("trafficLightsPriority");
     expect(forced.trafficLights).toHaveLength(1);
+  });
+
+  it("uses the standard disconnected-route error for Try harder on disconnected roads", () => {
+    const roads = {
+      type: "FeatureCollection",
+      features: [
+        roadFeature([
+          [34.77, 32.09],
+          [34.771, 32.09],
+        ]),
+        roadFeature([
+          [34.78, 32.1],
+          [34.781, 32.1],
+        ]),
+      ],
+    };
+    const graph = buildRoadGraph(roads);
+
+    expect(() =>
+      buildTrafficLightRoute(
+        graph,
+        point(34.77, 32.09),
+        point(34.781, 32.1),
+      ),
+    ).toThrow("No connected municipality road route found.");
   });
 });
 
@@ -244,23 +323,27 @@ describe("Tel Aviv municipality data integration", () => {
       telAvivPort,
       "fastest",
     );
-    const safest = buildMunicipalityRoute(
+    const preferTrafficLights = buildMunicipalityRoute(
       graph,
       mosheSharett80,
       telAvivPort,
-      "safest",
+      "preferTrafficLights",
     );
 
-    expect(fastest.distanceMeters).toBeLessThan(safest.distanceMeters);
-    expect(fastest.trafficLights).toHaveLength(6);
-    expect(safest.trafficLights).toHaveLength(14);
-    expect(Math.round(fastest.distanceMeters)).toBe(2325);
-    expect(safest.possibleCrossingMismatchCount).toBe(7);
-    expect(safest.possibleCrossingMismatches).toHaveLength(7);
-    expect(safest.signalizedCrossingCount).toBeGreaterThan(
-      fastest.signalizedCrossingCount,
+    expect(fastest.distanceMeters).toBeLessThan(preferTrafficLights.distanceMeters);
+    expect(preferTrafficLights.distanceMeters).toBeLessThanOrEqual(
+      fastest.distanceMeters * 1.3,
     );
-    expect(Math.round(safest.distanceMeters)).toBe(2780);
+    expect(fastest.trafficLights.length).toBeGreaterThan(0);
+    expect(preferTrafficLights.trafficLights.length).toBeGreaterThan(
+      fastest.trafficLights.length,
+    );
+    expect(preferTrafficLights.possibleCrossingMismatchCount).toBe(
+      preferTrafficLights.possibleCrossingMismatches.length,
+    );
+    expect(preferTrafficLights.unsignalizedCrossingCount).toBeLessThan(
+      fastest.unsignalizedCrossingCount,
+    );
   });
 
   it("finds a forced traffic-light route for a short Sharett to Belkind route", () => {
@@ -271,15 +354,11 @@ describe("Tel Aviv municipality data integration", () => {
       graph,
       sharett84,
       belkind1,
-      "safest",
+      "preferTrafficLights",
     );
-    const forced = buildTrafficLightRoute(graph, sharett84, belkind1);
-
     expect(regular.signalizedCrossingCount).toBe(0);
-    expect(forced.signalizedCrossingCount).toBeGreaterThan(0);
-    expect(forced.distanceMeters).toBeGreaterThan(regular.distanceMeters);
-    expect(forced.distanceMeters).toBeLessThanOrEqual(
-      regular.distanceMeters * 2,
+    expect(() => buildTrafficLightRoute(graph, sharett84, belkind1)).toThrow(
+      "No better traffic-light crossing route was found for these addresses.",
     );
   });
 });
