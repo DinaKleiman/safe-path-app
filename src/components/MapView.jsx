@@ -160,7 +160,7 @@ function RouteCrossingMismatchSymbols({ route }) {
   ));
 }
 
-export default function MapView({ route }) {
+export default function MapView({ osmWarning, route }) {
   const [signals, setSignals] = useState(null);
   const [error, setError] = useState("");
 
@@ -187,9 +187,8 @@ export default function MapView({ route }) {
       <div className="map-toolbar">
         <div>
           <h2>Tel Aviv route map</h2>
-          <p>Walking route + municipality traffic-light locations</p>
+          {osmWarning && <p className="map-osm-warning">{osmWarning}</p>}
         </div>
-
       </div>
 
       {error && <div className="map-error">Error: {error}</div>}

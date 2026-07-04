@@ -255,6 +255,34 @@
   opacity: 0.7;
 }
 
+.collapsed-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.collapsed-addresses {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #172033;
+  overflow: hidden;
+}
+
+.collapsed-addresses span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collapsed-arrow {
+  flex-shrink: 0;
+  color: #627084;
+}
+
 .route-note {
   display: grid;
   gap: 10px;
@@ -293,10 +321,27 @@
   color: #b42318;
 }
 
+.map-and-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
 .map-panel,
 .map-card {
   min-width: 0;
   min-height: 560px;
+}
+
+.result-card {
+  text-align: left;
+}
+
+.map-osm-warning {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #b42318;
 }
 
 .map-card {
