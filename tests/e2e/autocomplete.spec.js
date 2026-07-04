@@ -122,7 +122,7 @@ test.describe("autocomplete and language behavior", () => {
     await expect(page.getByText("Enter building number")).toBeVisible();
 
     await fillFrom(page, "נמיר מרדכי");
-    await page.getByPlaceholder("Example: Tel Aviv Port").fill("Tel Aviv Port");
+    await page.getByPlaceholder("Choose destination").fill("Tel Aviv Port");
     await closeAutocomplete(page);
     await clickFindRoute(page);
 

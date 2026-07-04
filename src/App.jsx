@@ -455,8 +455,8 @@ function AddressField({
 }
 
 export default function App() {
-  const [from, setFrom] = useState("Dizengoff Center, Tel Aviv");
-  const [to, setTo] = useState("Tel Aviv Port");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [routeMode, setRouteMode] = useState("preferTrafficLights");
   const [roadGraph, setRoadGraph] = useState(null);
   const [roadGraphError, setRoadGraphError] = useState("");
@@ -756,7 +756,7 @@ export default function App() {
               value={from}
               onChange={setFrom}
               onSubmit={handleFindRoute}
-              placeholder="Example: Dizengoff Center"
+              placeholder="Choose starting point"
             />
 
             <AddressField
@@ -766,7 +766,7 @@ export default function App() {
               value={to}
               onChange={setTo}
               onSubmit={handleFindRoute}
-              placeholder="Example: Tel Aviv Port"
+              placeholder="Choose destination"
             />
 
             <div className="filters">

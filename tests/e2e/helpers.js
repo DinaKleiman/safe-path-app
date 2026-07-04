@@ -18,11 +18,11 @@ export async function prepareApp(page, { geocoderResults = [] } = {}) {
 }
 
 export function fromInput(page) {
-  return page.getByPlaceholder("Example: Dizengoff Center");
+  return page.getByPlaceholder("Choose starting point");
 }
 
 export function toInput(page) {
-  return page.getByPlaceholder("Example: Tel Aviv Port");
+  return page.getByPlaceholder("Choose destination");
 }
 
 export async function fillFrom(page, value) {
