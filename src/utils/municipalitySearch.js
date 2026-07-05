@@ -137,7 +137,7 @@ function uniqueByDisplayName(results) {
   });
 }
 
-function toAddressRecord(feature) {
+function toAddressRecord(feature, streetEnglishLookup = null) {
   const properties = feature.properties ?? {};
   const point = getPoint(feature);
 
@@ -147,7 +147,8 @@ function toAddressRecord(feature) {
 
   const fullAddress = properties.t_ktovet_melea || "";
   const street = properties.t_rechov || "";
-  const streetEnglish = properties.t_rechov_eng || "";
+  const streetEnglish =
+    properties.t_rechov_eng || streetEnglishLookup?.get(street) || "";
   const houseNumber = properties.ms_bayit;
   const entrance = compactText(properties.knisa);
   const displayNameHe = fullAddress.trim() || `${street} ${houseNumber}`.trim();
@@ -383,8 +384,16 @@ export function buildMunicipalitySearchIndex(
   schoolsGeoJson,
   streetNamesGeoJson = null,
 ) {
+  const streetEnglishLookup = new Map(
+    (streetNamesGeoJson?.features ?? []).flatMap((f) => {
+      const he = f.properties?.t_rechov;
+      const en = f.properties?.shem_angli;
+      return he && en && !/^\d+$/.test(he.trim()) ? [[he, en]] : [];
+    }),
+  );
+
   const addresses = (addressesGeoJson?.features ?? [])
-    .map(toAddressRecord)
+    .map((feature) => toAddressRecord(feature, streetEnglishLookup))
     .filter(Boolean);
 
   return {
