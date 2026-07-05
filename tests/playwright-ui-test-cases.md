@@ -34,10 +34,12 @@ Current status: planned, unless marked otherwise. A few autocomplete checks were
 - PW-WEB-002: Route mode list is correct
 - PW-WEB-003: Balanced mode is removed
 - PW-WEB-004: Only one route mode can be selected
-- PW-WEB-005: Fastest desktop route is calculated
-- PW-WEB-006: Prefer traffic lights desktop route is calculated
-- PW-WEB-007: Route result displays required values
-- PW-WEB-008: Route appears on map
+- PW-WEB-005: Fastest desktop route is calculated for Hebrew input
+- PW-WEB-006: Fastest desktop route is calculated for English input
+- PW-WEB-007: Prefer traffic lights desktop route is calculated
+- PW-WEB-008: Mixed-language route input works when it reflects real user behavior
+- PW-WEB-009: Route result displays required values
+- PW-WEB-010: Route appears on map
 
 ### Negative UI Tests
 
@@ -126,10 +128,12 @@ Current status: planned, unless marked otherwise. A few autocomplete checks were
 | PW-WEB-002 | Controls | Route mode list is correct | Inspect route mode controls. | Only `Prefer traffic lights` and `Fastest` are visible. | Planned |
 | PW-WEB-003 | Controls | Balanced mode is removed | Search visible UI for `Balanced`. | `Balanced` is not visible. | Planned |
 | PW-WEB-004 | Controls | Only one route mode can be selected | Select `Fastest`, then select `Prefer traffic lights`. | Only the last selected radio option is checked. | Planned |
-| PW-WEB-005 | Route | Fastest desktop route is calculated | Enter `משה שרת 80` to `Tel Aviv Port`, select `Fastest`, click Find route. | Result shows about `2.33 km` and route traffic-light count. | Planned |
-| PW-WEB-006 | Route | Prefer traffic lights desktop route is calculated | Enter same A/B, select `Prefer traffic lights`, click Find route. | Result shows about `2.84 km` and more traffic lights than fastest. | Planned |
-| PW-WEB-007 | Result | Route result displays required values | Calculate a valid route. | Result shows distance, estimated walking time, route mode, and traffic-light count. | Planned |
-| PW-WEB-008 | Map | Route appears on map | Calculate valid route. | Map status says route is shown and route line is rendered. | Planned |
+| PW-WEB-005 | Route | Fastest desktop route is calculated for Hebrew input | Enter `אבן גבירול 71` to `נמל תל אביב`, select `Fastest`, click Find route. | Result shows distance, estimated walking time, route mode, crossing counts, and route line. | Automated |
+| PW-WEB-006 | Route | Fastest desktop route is calculated for English input | Enter `IBN GVIROL 71` to `Tel Aviv Port`, select `Fastest`, click Find route. | Result shows distance, estimated walking time, route mode, crossing counts, and route line. | Automated |
+| PW-WEB-007 | Route | Prefer traffic lights desktop route is calculated | Enter `IBN GVIROL 71` to `Tel Aviv Port`, compare `Fastest` and `Prefer traffic lights`. | Prefer-traffic-lights route has more traffic lights and fewer non-signalized crossings than fastest. | Automated |
+| PW-WEB-008 | Route | Mixed-language route input works when it reflects real user behavior | Calculate `אבן גבירול 71` to `Tel Aviv Port`, then `IBN GVIROL 71` to `נמל תל אביב`. | Both routes calculate successfully. | Automated |
+| PW-WEB-009 | Result | Route result displays required values | Calculate a valid route. | Result shows distance, estimated walking time, route mode, and traffic-light count. | Planned |
+| PW-WEB-010 | Map | Route appears on map | Calculate valid route. | Map status says route is shown and route line is rendered. | Planned |
 
 ## Negative UI Tests
 
@@ -160,7 +164,7 @@ Current status: planned, unless marked otherwise. A few autocomplete checks were
 | PW-MAP-004 | Map | Start and destination markers appear | Calculate route. | Start and destination markers are visible. | Planned |
 | PW-MAP-005 | Map | Route line appears after calculation | Calculate valid route. | Route polyline is visible. | Planned |
 | PW-MAP-006 | Map | Route traffic-light count matches result text | Calculate valid route. | Header count and result count are consistent. | Planned |
-| PW-MAP-007 | Map | Yellow markers appear only for non-signalized OSM pedestrian crossings | Calculate `Dizengoff Center` to `Tel Aviv Port`. | Yellow marker count matches `Crossings without confirmed traffic lights` and `Non-signalized pedestrian crossings`; traffic-light crossings have no yellow marker. | Planned |
+| PW-MAP-007 | Map | Yellow markers appear only for non-signalized OSM pedestrian crossings | Calculate `אבן גבירול 71` to `נמל תל אביב`. | Yellow marker count matches `Crossings without confirmed traffic lights` and `Non-signalized pedestrian crossings`; traffic-light crossings have no yellow marker. | Planned |
 | PW-MAP-008 | Map | Yellow mismatch markers do not hide traffic-light markers | Calculate a route with both traffic lights and yellow markers. | Traffic-light symbols remain visible above yellow warning markers. | Planned |
 
 ## Mobile Tests
@@ -171,7 +175,7 @@ Current status: planned, unless marked otherwise. A few autocomplete checks were
 | PW-MOB-002 | Forms | Mobile address entry works | Tap From and To fields, enter addresses. | Text entry works and fields remain usable. | Planned |
 | PW-MOB-003 | Autocomplete | Mobile autocomplete remains usable | Type `נמי` and `nami` in mobile viewport. | Suggestions appear and do not cover critical controls incorrectly. | Planned |
 | PW-MOB-004 | Controls | Mobile route mode selection works | Tap each route mode option. | Only one option is selected at a time. | Planned |
-| PW-MOB-005 | Route | Mobile route calculation works | Calculate `משה שרת 80` to `Tel Aviv Port`. | Route result is visible and readable. | Planned |
+| PW-MOB-005 | Route | Mobile route calculation works | Calculate `אבן גבירול 71` to `נמל תל אביב`. | Route result is visible and readable. | Automated |
 | PW-MOB-006 | Text | Mobile result text wraps without overlap | Check result panel after route calculation. | Distance, time, mode, and traffic-light count do not overlap. | Planned |
 | PW-MOB-007 | Map | Mobile map remains visible after route calculation | Calculate route and inspect map area. | Map remains visible and route status updates. | Planned |
 
