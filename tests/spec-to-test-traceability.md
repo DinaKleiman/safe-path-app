@@ -1,145 +1,115 @@
-# Safe Path Spec-To-Test Traceability
+# Safe Path Spec-To-Test Traceability Matrix
 
-This is the living QA coverage document for Safe Path.
+This file maps current product requirements from `docs/spec.md` to test coverage.
 
-Update this file whenever `docs/spec.md`, routing logic, search logic, UX behavior, or test coverage changes.
+It does not track latest test execution status. Latest pass/fail results belong in release reports under `tests/releases/release_ver_#.md`.
 
-## Status Values
+## Coverage Status Values
 
-- `Covered / Passing`: automated test exists and currently passed in the latest run.
-- `Partial`: automated coverage exists, but it does not fully prove the spec requirement.
-- `Gap`: required by spec, but no sufficient automated test exists.
-- `Manual`: verified manually only; should become automated if it is release-critical.
-- `Future`: documented future scope; not required for current release.
+| Status | Meaning |
+| --- | --- |
+| `Covered` | Requirement has sufficient automated coverage for its current scope. |
+| `Not fully covered` | Some coverage exists, but it does not fully prove the requirement. Current-scope gaps must be closed or explicitly deferred. |
+| `Not covered` | No sufficient automated coverage exists. Current-scope P0 requirements must not stay in this state. |
+| `Out of scope` | Requirement is documented as future/outside current release scope. |
 
-Latest full known run:
+## Priority Values
 
-- Vitest: `22/22` passed.
-- Playwright: `21` app UI tests passed; Google Maps benchmark is skipped unless explicitly enabled.
-- Lint/build: passed in the latest full check.
-
-Latest targeted run:
-
-- Playwright desktop autocomplete/routing: passed after adding language-separation, keyboard-navigation, short-input, no-`Try harder`, and map-attribution checks.
-
-Latest Google Maps benchmark run:
-
-- Command: `npm run test:benchmark:google`.
-- Source: Google Maps walking route UI, using coordinates resolved by the app.
-- Compared value: app `Prefer traffic lights` distance.
-- Rule: `difference = (Google walking distance - App prefer-traffic-lights distance) / Google walking distance`.
-- Result meaning: `PASS` when the difference is `0%` or positive; `FAIL` when the difference is negative because the app's prefer-traffic-lights route is longer than Google walking.
-- Latest result: `5 PASS`, `9 FAIL`.
-- Risk accepted by product: this test depends on Google Maps UI text and can fail if Google changes the page structure, route selection, or wording.
+| Priority | Meaning |
+| --- | --- |
+| `P0` | Release blocker if not covered or if tests fail in the release run. |
+| `P1` | Important. Release can continue only if risk is documented in the release file. |
+| `P2` | Lower-risk quality improvement. Track, but does not normally block release. |
 
 ## Maintenance Rules
 
-- Every accepted product rule in `docs/spec.md` must map to at least one row here.
-- A release should not be considered product-passed while a current-release row is `Gap`.
-- A test can pass and still be insufficient; mark that as `Partial`.
-- If code changes product behavior, update the spec first or in the same change.
-- If the spec changes, update this matrix before reporting final QA status.
+| Rule | Requirement |
+| --- | --- |
+| Spec-first coverage | Every accepted current-release behavior in `docs/spec.md` must map to this file. |
+| Happy paths are mandatory | Happy-path P0 requirements must be `Covered`. |
+| Coverage is not execution | Coverage status belongs here; latest run result belongs in a release report. |
+| Gaps need a source | `Gap Reason / Next Action` must explain whether the issue needs only tests, implementation, stable data, a product decision, or a scope change. |
+| Ask when unclear | If the gap source is unclear, ask product before deciding. |
 
-## Current Release Traceability
+## Happy Path Cases
 
-| ID | Spec Ref | Requirement | Test Type | Current Automated Coverage | Status | Gap / Next Action |
-| --- | --- | --- | --- | --- | --- | --- |
-| SCOPE-001 | 2 | Walking routes inside Tel Aviv | Playwright + Vitest | Route tests use Tel Aviv known A/B pairs in `routing.spec.js` and `municipalityRouting.test.js`. | Covered / Passing | Add negative outside-Tel-Aviv route case if strict boundary logic is implemented. |
-| SCOPE-002 | 2, 5 | Hebrew and English location search | Vitest + Playwright | `municipalitySearch.test.js`; `autocomplete.spec.js` Hebrew/English prefix and strict Hebrew-no-English-external tests. | Covered / Passing | None. |
-| SCOPE-003 | 2, 5 | Autocomplete for addresses, streets, schools, and known places | Vitest + Playwright | Address, street, school, local regression tests exist. | Covered / Passing | Add more place-layer tests when more place datasets become active in search. |
-| SCOPE-004 | 2, 6 | One route mode selected at a time | Playwright | `route modes are single-select and Balanced is removed`. | Covered / Passing | None. |
-| SCOPE-005 | 2, 7 | Route distance calculated from local road graph | Vitest + Playwright benchmark | `calculates distinct route behavior`; graph construction and distance tests; Google Maps benchmark compares app `Prefer traffic lights` distance with Google walking distance. | Covered / Passing | Review Google benchmark failures as product/routing gaps, not as source-of-truth replacement. |
-| SCOPE-006 | 2, 7 | Walking time calculated from route distance | Playwright | Route UI checks estimated walking time is shown. | Partial | Add Vitest unit assertion for `distance / 1.3` if duration helper is exported or isolated. |
-| SCOPE-007 | 2, 10 | Traffic-light markers shown on map | Playwright | `map, traffic-light icons, route, and route markers render`. | Covered / Passing | None. |
-| SCOPE-008 | 2, 8, 11 | Signalized and non-signalized crossing counts shown | Playwright + Vitest | Routing tests assert signalized crossing improvement; UI checks crossing count labels. | Covered / Passing | Add exact route geometry proximity test if crossing-count logic changes. |
-| SCOPE-009 | 2, 9 | `Try harder` flow for longer route | Playwright + Vitest | `Try harder recalculates...`; forced traffic-light route tests. | Covered / Passing | Add negative no-better-route case when a stable fixture exists. |
+| ID | Priority | Requirement Section | Requirement Type | Spec Link | Requirement | Example / Fixture | Test Level | Automation Type | Coverage Status | Gap Reason / Next Action |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| HP-001 | P0 | §2 Release Scope; §4 Core User Flow; §10 Map Requirements | UX / Map UI | [spec §2](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:9), [spec §4](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:73), [spec §10](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:296) | User opens the app and sees usable route form and map. | App load on desktop and mobile viewport | E2E | Playwright | Covered | None. |
+| HP-002 | P0 | §5 Address And Place Search; §15 Search Acceptance | Search | [spec §5](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:97), [spec §15 Search](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:422) | Hebrew input returns Hebrew municipality suggestions. | `נמי -> נמיר מרדכי` | E2E + Integration | Playwright + Vitest | Covered | None. |
+| HP-003 | P0 | §5 Address And Place Search; §15 Search Acceptance | Search | [spec §5](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:97), [spec §15 Search](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:422) | English input returns English municipality suggestions. | `nami -> NAMIR`; `IBN GVIROL 71 -> IBN GVIROL 71` | E2E + Integration | Playwright + Vitest | Covered | None. |
+| HP-004 | P0 | §4 Core User Flow; §5 Address And Place Search | Search / UX | [spec §4](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:73), [spec §5](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:97) | User can select autocomplete suggestion and the input is filled. | Select `נמיר מרדכי` by mouse and keyboard | E2E | Playwright | Covered | None. |
+| HP-005 | P0 | §5 Local Aliases; §15 Search Acceptance | Search | [spec §5 Local Aliases](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:130), [spec §15 Search](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:422) | Known Hebrew school prefixes resolve to school, not street. | `בה״ס אהבת ציון -> בית ספר אהבת ציון, כהנשטם 16` | E2E + Integration | Playwright + Vitest | Covered | None. |
+| HP-006 | P0 | §5 Street Without Building Number; §12 Error States | Search / UX | [spec §5 Street Without Building Number](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:118), [spec §12](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:338) | Street-only input immediately shows `Enter building number`; message disappears after number is entered. | `נמיר מרדכי`; `Namir`; `נמיר מרדכי 10` | E2E + Integration | Playwright + Vitest | Covered | None. |
+| HP-007 | P0 | §6 Route Modes; §7 Routing Model; §8 Crossing Logic; §11 Result Panel; §15 Routing Acceptance | Routing | [spec §6](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:144), [spec §7](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:159), [spec §8](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:200), [spec §11](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:315), [spec §15 Routing](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:411) | User builds `Fastest` route and sees distance, time, mode, traffic lights, crossing counts, warning, and route line. | Hebrew: `אבן גבירול 71 -> נמל תל אביב`; English: `IBN GVIROL 71 -> Tel Aviv Port` | E2E + Integration | Playwright + Vitest | Covered | None. |
+| HP-008 | P0 | §6 Route Modes; §8 Crossing Logic; §15 Routing Acceptance | Routing / Crossing logic | [spec §6](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:144), [spec §8 Ranking](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:239), [spec §15 Routing](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:411) | User builds `Prefer traffic lights` route and route improves crossing quality when available. | `IBN GVIROL 71 -> Tel Aviv Port` | E2E + Integration | Playwright + Vitest | Covered | None. |
+| HP-009 | P0 | §6 Route Modes; §15 UI Acceptance | Routing / UX | [spec §6](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:144), [spec §15 UI](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:430) | User can select only one route mode; only `Prefer traffic lights` and `Fastest` are present. | Toggle `Fastest` then `Prefer traffic lights` | E2E | Playwright | Covered | None. |
+| HP-010 | P0 | §9 Try Harder Flow; §15 Routing Acceptance | Routing / Crossing logic | [spec §9](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:264), [spec §15 Routing](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:411) | `Try harder` happy flow shows confirmation and returns a route through traffic lights when available. | `סמטת החרמון 7 -> כפר גלעדי 32` | E2E + Integration | Playwright + Vitest | Covered | None. |
+| HP-011 | P0 | §4 Core User Flow; §5 Address Search | Routing / Search | [spec §4](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:73), [spec §5](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:97) | Mixed-language route input is supported when it reflects realistic user input. | Hebrew→English: `אבן גבירול 71 -> Tel Aviv Port`; English→Hebrew: `IBN GVIROL 71 -> נמל תל אביב` | E2E | Playwright | Covered | None. |
+| HP-012 | P1 | §10 Map Requirements; §11 Result Panel; §15 UI Acceptance | Map UI | [spec §10](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:296), [spec §11](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:315), [spec §15 UI](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:430) | Route result and map show required UI: route line, markers, traffic-light icons, counts, and no map attribution. | `אבן גבירול 71 -> נמל תל אביב` | E2E | Playwright | Not fully covered | Needs test only: add direct assertion for start/destination markers, yellow marker count, and yellow-marker z-order. |
+| HP-013 | P1 | §2 Release Scope; §10 Map Requirements; §11 Result Panel | Mobile | [spec §2](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:9), [spec §10](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:296), [spec §11](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:315) | Mobile user can load app, use autocomplete, calculate route, and read result/map. | `אבן גבירול 71 -> נמל תל אביב` | E2E | Playwright mobile viewport | Not fully covered | Needs test only: add mobile route-mode selection and screenshot/overlap checks. |
+| HP-014 | P0 | §5 Address And Place Search; §15 Search Acceptance | Search | [spec §5](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:97), [spec §15 Search](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:422) | Same-name entities from different layers appear as separate suggestions. | Needs stable same-name street + school/place fixture from current data | E2E + Integration | Playwright + Vitest | Not fully covered | Needs stable test data: find real same-name case in current GeoJSON or create controlled fixture. Ask product before choosing synthetic data. |
+| HP-015 | P1 | §2 Release Scope; §5 Address And Place Search | Search / Data | [spec §2](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:9), [spec §5](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:97) | Autocomplete supports addresses, streets, schools, and known local places. | Address: `אבן גבירול 71`; street: `נמיר מרדכי`; school: `בית ספר אהבת ציון`; known place: `נמל תל אביב` | E2E + Integration | Playwright + Vitest | Not fully covered | Requirement not fully implemented: addresses, streets, schools, and local fallback places are covered; broader place layers need implementation decision before tests. |
 
-## Data Source Traceability
+## Negative Cases
 
-| ID | Spec Ref | Requirement | Test Type | Current Automated Coverage | Status | Gap / Next Action |
-| --- | --- | --- | --- | --- | --- | --- |
-| DATA-001 | 3 | `roads.geojson` loads and builds graph | Vitest | `loads valid municipality road and traffic-light datasets`; graph size tests. | Covered / Passing | None. |
-| DATA-002 | 3 | `signalized_intersections.geojson` loads and annotates graph | Vitest + Playwright | Traffic-light file structure, graph annotation, map marker rendering. | Covered / Passing | None. |
-| DATA-003 | 3 | `pedestrian_crossings.geojson` used as crossing helper | Vitest + Playwright | Routing tests use crossing dataset; UI shows crossing-data warning. | Covered / Passing | Add data-integrity test for signalized/non-signalized property distribution. |
-| DATA-004 | 3 | OSM crossing warning and crossings without confirmed traffic lights count are shown when crossing data is used | Playwright + Vitest | Routing output includes the unconfirmed-crossing count and map marker coordinates. | Covered / Passing | None. |
-| DATA-005 | 3 | Nominatim is helper only, not route safety source | Vitest + architecture | Routing tests build route from local graph. | Partial | Add explicit test/mock proving route still calculates from local graph when geocoder is mocked. |
-| DATA-006 | 3 | External routing engines are not safety source | Code review / architecture | No external route engine call is used in current app routing. | Manual | Add static test or architecture check only if external routing code is introduced. |
+| ID | Priority | Requirement Section | Requirement Type | Spec Link | Negative Case | Example / Fixture | Test Level | Automation Type | Coverage Status | Gap Reason / Next Action |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| NEG-001 | P0 | §12 Error States: Missing Input | UX / Validation | [spec §12 Missing Input](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:330) | User submits with missing `From` or missing `To`. | Empty `From`; empty `To` | E2E | Playwright | Covered | None. |
+| NEG-002 | P0 | §12 Error States: Address Not Found | UX / Validation | [spec §12 Address Not Found](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:344) | User enters a non-existing address; app shows clear message, does not draw route, keeps fields editable. | Invalid Tel Aviv address with mocked empty geocoder | E2E | Playwright route mock | Not covered | Needs test only: add Playwright test with mocked empty Nominatim and no municipality match. |
+| NEG-003 | P0 | §12 Error States: Road Graph Not Loaded | Data / UX | [spec §12 Road Graph Not Loaded](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:352) | Road data is still loading or unavailable. | Failed `/data/roads.geojson` response | E2E | Playwright route mock | Not covered | Needs test only: add Playwright route mock for road data load/failure state. |
+| NEG-004 | P0 | §12 Error States: No Connected Route | Routing / UX | [spec §12 No Connected Route](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:358) | Snapped points cannot connect through graph. | Disconnected graph fixture | Unit + E2E | Vitest + planned Playwright | Not fully covered | Needs test only: add standard route disconnected-graph case and UI assertion. |
+| NEG-005 | P0 | §5 Street Without Building Number; §12 Error States | Search / Validation | [spec §5 Street Without Building Number](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:118), [spec §12 Street Without Building Number](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:338) | Street-only input is submitted without building number. | `נמיר מרדכי` | E2E + Integration | Playwright + Vitest | Covered | None. |
+| NEG-006 | P1 | §5 Address And Place Search | Search | [spec §5](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:97) | One-character search should not show autocomplete suggestions. | `נ` | E2E | Playwright | Covered | None. |
 
-## Search And Autocomplete Traceability
+## Edge Cases
 
-| ID | Spec Ref | Requirement | Test Type | Current Automated Coverage | Status | Gap / Next Action |
-| --- | --- | --- | --- | --- | --- | --- |
-| SEARCH-001 | 5 | Search supports Hebrew and English | Vitest + Playwright | Hebrew/English autocomplete and municipality search tests. | Covered / Passing | None. |
-| SEARCH-002 | 5, 15 | Hebrew input should return Hebrew suggestions | Vitest + Playwright | Tests check expected Hebrew option appears and no English external suggestions are appended when Hebrew municipality results exist. | Covered / Passing | None. |
-| SEARCH-003 | 5, 15 | English input should return English suggestions | Vitest + Playwright | Tests check English street options appear. | Covered / Passing | Add strict no-Hebrew-result assertion only if product requires English-only display. |
-| SEARCH-004 | 5 | Search starts after at least 2 characters | Playwright | One-character input test asserts no options are shown. | Covered / Passing | None. |
-| SEARCH-005 | 5 | Same-name entities from different layers appear as separate suggestions | Vitest + Playwright | School prefix and same-name street behavior tests. | Partial | Add direct UI test where a query can show both school/place and street options when no prefix forces one type. |
-| SEARCH-006 | 5 | Street without building number asks for building number during address entry | Vitest + Playwright | Street-only tests assert `Enter building number` appears before submit, disappears after a number is entered, and route submit remains blocked without a number. | Covered / Passing | None. |
-| SEARCH-007 | 5 | Full address existence verified before route | Vitest + Playwright | Address with building number tests exist. | Partial | Add invalid building number test. |
-| SEARCH-008 | 5 | School prefixes resolve to schools, not streets | Vitest + Playwright | `school prefix shows school results...`; school abbreviation unit tests. | Covered / Passing | None. |
-| SEARCH-009 | 5 | Quote variants are normalized | Vitest + Playwright | Hebrew quote and English apostrophe tests. | Covered / Passing | None. |
-| SEARCH-010 | 5 | Fuzzy typo correction works | Vitest + Playwright | Fuzzy typo tests exist. | Covered / Passing | None. |
-| SEARCH-011 | 5 | Autocomplete option can be selected by mouse | Playwright | `selecting an autocomplete option fills the address field`. | Covered / Passing | None. |
-| SEARCH-012 | 5, UX | Autocomplete option can be selected by keyboard | Playwright | Keyboard test covers ArrowDown, selected option state, Enter selection, and Escape close. | Covered / Passing | Add ArrowUp coverage if multi-option ordering changes. |
-| SEARCH-013 | 5 | External suggestions limited to Tel Aviv | Browser/manual observation | Current rectangle bounds allowed nearby cities in Hebrew example. | Gap | Add boundary test after exact Tel Aviv boundary or stricter external filtering decision is implemented. |
+| ID | Priority | Requirement Section | Requirement Type | Spec Link | Edge Case | Example / Fixture | Test Level | Automation Type | Coverage Status | Gap Reason / Next Action |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| EDGE-001 | P1 | §5 Address And Place Search | Search | [spec §5](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:97) | Hebrew quote variants and English apostrophe variants normalize correctly. | `אדם`; `אד״ם`; `yiga` | E2E + Integration | Playwright + Vitest | Covered | None. |
+| EDGE-002 | P1 | §5 Address And Place Search | Search | [spec §5](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:97) | Small typo still suggests close street or school match. | `נמירר`; `namr`; `בית ספר אהבת ציונ` | E2E + Integration | Playwright + Vitest | Covered | None. |
+| EDGE-003 | P1 | §7 Routing Model: Snapping | Routing | [spec §7 Snapping](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:171) | Same start/end or near-node snapping does not break distance calculation. | Same coordinate; near-node route fixture | Unit | Vitest | Covered | None. |
+| EDGE-004 | P0 | §8 Crossing Logic: Ranking Rules | Crossing logic | [spec §8 Ranking](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:239) | Better signalized route over `1.3x` should be rejected in normal `Prefer traffic lights`. | Synthetic graph where safer route exceeds `1.3x` | Integration | Vitest | Not fully covered | Needs test only: add explicit fixture where safer route is over `1.3x` and normal mode rejects it. |
+| EDGE-005 | P0 | §8 Crossing Logic: Ranking Rules | Crossing logic | [spec §8 Ranking](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:239) | Non-signalized crossings are allowed when no reasonable signalized alternative exists. | Stable route where preferred route still contains non-signalized crossings | Integration | Vitest | Not fully covered | Needs stable test data: find or create a stable fixture where selected preferred route still contains non-signalized crossings. |
+| EDGE-006 | P1 | §9 Try Harder Flow | Routing / UX | [spec §9](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:264) | `Try harder` cannot find a better route up to `2x` and shows clear no-route message. | `שרת משה 84 -> בלקינד 1` logic fixture | Unit + E2E | Vitest + planned Playwright | Not fully covered | Needs test only: add Playwright UI assertion for no-better-route message. |
+| EDGE-007 | P1 | §5 Address Search; §15 Search Acceptance | Search / Data | [spec §5](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:97), [spec §15 Search](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:422) | External autocomplete should not leak nearby non-Tel-Aviv results into Hebrew local result list. | Mocked external `Ne'omi Shemer, Or Yehuda` for Hebrew query `נמי` | E2E | Playwright route mock | Not fully covered | Needs product decision: exact Tel Aviv boundary filtering rule/data is not finalized. |
+| EDGE-008 | P1 | §8 Crossing Logic; §10 Map Requirements; §11 Result Panel | Crossing logic / Map UI | [spec §8 Possible Mismatches](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:222), [spec §10](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:296), [spec §11](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:315) | Yellow marker count must equal crossings without confirmed traffic lights and must never appear on traffic-light crossings. | Route with non-signalized OSM pedestrian crossings | Integration + E2E | Vitest + planned Playwright | Not fully covered | Needs test only: add Playwright marker-count and marker-vs-traffic-light z-order assertions. |
 
-## Routing Traceability
+## Data, Source-Of-Truth, Security, And Benchmark Cases
 
-| ID | Spec Ref | Requirement | Test Type | Current Automated Coverage | Status | Gap / Next Action |
-| --- | --- | --- | --- | --- | --- | --- |
-| ROUTE-001 | 6, 8 | `Fastest` minimizes road-graph distance | Vitest + Playwright | Fastest route tests and distance comparison tests. | Covered / Passing | None. |
-| ROUTE-002 | 6, 8 | `Prefer traffic lights` improves crossing quality when available | Vitest + Playwright | Distinct route behavior and safer route tests. | Covered / Passing | Add more known A/B examples over time. |
-| ROUTE-003 | 8 | Non-signalized crossings are allowed when no reasonable alternative exists | Vitest | Crossing metrics included in routing output. | Partial | Add stable fixture where preferred route still includes non-signalized crossings. |
-| ROUTE-004 | 8 | Route cannot detour unreasonably in normal mode | Vitest | Reasonable-detour logic tested indirectly. | Partial | Add explicit fixture where better signalized route is over `1.3x` and normal mode rejects it. |
-| ROUTE-005 | 9 | `Try harder` requires confirmation | Playwright | Updated test checks confirmation and `Do it anyway`. | Covered / Passing | None. |
-| ROUTE-006 | 9 | `Try harder` max distance is `2x` fastest | Vitest | Forced route distance checked in routing tests. | Covered / Passing | Add UI assertion if route summary exposes comparison later. |
-| ROUTE-007 | 9 | Try Harder warning appears when non-signalized crossings remain | Playwright | Try Harder route test asserts the remaining non-signalized crossing warning. | Covered / Passing | None. |
-| ROUTE-008 | 7 | Same start and destination distance is zero | Vitest | `calculates zero distance for same coordinate`. | Covered / Passing | None. |
-| ROUTE-009 | 7 | Start/end snap to graph nodes and include snap distance | Vitest | Start/end not exact graph nodes test. | Covered / Passing | None. |
-| ROUTE-010 | 12 | Empty or disconnected graph returns clear error | Vitest | Empty road graph test. | Covered / Passing | Add disconnected graph test if disconnected data becomes realistic. |
+| ID | Priority | Requirement Section | Requirement Type | Spec Link | Requirement | Example / Fixture | Test Level | Automation Type | Coverage Status | Gap Reason / Next Action |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| DATA-001 | P0 | §3 Source Of Truth: Primary Source; §15 Data Acceptance | Data | [spec §3 Primary Source](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:33), [spec §15 Data](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:438) | Required GeoJSON files load successfully. | `roads.geojson`, `addresses.geojson`, `schools.geojson`, `street_names.geojson` | Integration | Vitest | Covered | None. |
+| DATA-002 | P0 | §3 Source Of Truth: Primary Source; §7 Routing Model | Data / Routing | [spec §3 Primary Source](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:33), [spec §7](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:159) | Roads build local graph and route distance comes from graph edges. | Municipality `roads.geojson` graph | Integration | Vitest | Covered | None. |
+| DATA-003 | P0 | §3 Secondary Helper; §8 Crossing Logic | Data / Crossing logic | [spec §3 Secondary Helper](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:50), [spec §8](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:200) | OSM pedestrian crossings are helper data for crossing points, not municipality truth. | `pedestrian_crossings.geojson`; route warning | Integration + E2E | Vitest + Playwright | Covered | None. |
+| DATA-004 | P1 | §3 External Services | Data / Architecture | [spec §3 External Services](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:65) | Nominatim may help autocomplete/geocoding but must not decide route safety. | Mocked external geocoder with local graph routing | Integration + E2E | Vitest + Playwright route mock | Not fully covered | Needs test only: add explicit test proving route result is unchanged by mocked external geocoder content. |
+| DATA-005 | P1 | §3 External Services | Architecture | [spec §3 External Services](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:65) | External routing engines must not be route safety source. | Static scan for route-engine calls | Static | Planned shell/CI check | Not covered | Needs test only if external routing code is introduced; otherwise keep as architecture review item. |
+| DATA-006 | P1 | §15 Data Acceptance | Data / Repository | [spec §15 Data](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:438) | GeoJSON files intended for repo storage are tracked through Git LFS. | `.gitattributes`; `public/data/*.geojson` | Static | Planned shell/CI check | Not covered | Needs test only: add static check for LFS tracking and large GeoJSON pointers if required before release. |
+| SEC-001 | P1 | General Release Quality; §3 External Services | Security | [spec §3 External Services](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:65) | No secrets, API keys, or deployment tokens are committed to frontend config. | Secret scan across repo | Static | Planned shell/CI check | Not covered | Needs test only: add secret scan in CI or release checklist. |
+| SEC-002 | P1 | Frontend Safety; §10 Map Requirements | Security | [spec §10](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:296) | Map popup/display text should not inject HTML. | Popup text escaping fixture | Unit | Planned Vitest | Not fully covered | Needs implementation shape: add unit test if popup escaping helper is exported or extracted. |
+| BENCH-001 | P1 | §7 Distance; §15 Routing Acceptance | Benchmark | [spec §7 Distance](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:179), [spec §15 Routing](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:411) | Compare app `Prefer traffic lights` distance against Google Maps walking distance for mixed Tel Aviv cases. | Mixed street, school, and place routes | Benchmark | Playwright external benchmark | Covered | Benchmark belongs in release report because result may be pass/fail per run. |
 
-## Map And Result UI Traceability
+## Future / Out Of Scope Cases
 
-| ID | Spec Ref | Requirement | Test Type | Current Automated Coverage | Status | Gap / Next Action |
-| --- | --- | --- | --- | --- | --- | --- |
-| UI-001 | 10 | Map shows route line, start, destination, traffic-light markers, and yellow mismatch markers when relevant | Playwright + implementation | Map rendering test covers main layers; routing logic exposes mismatch marker coordinates. | Partial | Add direct marker-count assertion for yellow mismatch markers. |
-| UI-002 | 10 | Traffic-light markers look like traffic-light symbols | Playwright | `.traffic-light-marker` visible. | Partial | Add visual/size assertion if icon CSS changes frequently. |
-| UI-003 | 10 | Map does not label all intersections as traffic lights | Playwright + implementation | Map uses `signalized_intersections.geojson`, not intersections layer. | Covered / Passing | None. |
-| UI-004 | 10 | Map attribution labels are not visible | Playwright | Map rendering test asserts `.leaflet-control-attribution` is not present. | Covered / Passing | None. |
-| UI-005 | 11 | Result panel displays required route values | Playwright | Fastest route test checks distance, time, mode, traffic lights, crossings without confirmed traffic lights, and crossing counts. | Covered / Passing | None. |
-| UI-005A | 8, 10, 11 | Yellow markers are shown only for non-signalized OSM pedestrian crossings and do not hide traffic-light markers | Vitest + planned Playwright | Route metrics verify crossings without confirmed traffic lights match non-signalized crossings for known routes; marker layer renders below traffic-light route markers. | Partial | Add Playwright marker-count and z-order visual assertion. |
-| UI-006 | 11 | `Try harder` not shown when route has signalized crossings | Playwright | Prefer-traffic-lights route test asserts the `Try harder` button is absent for a route with signalized crossings. | Covered / Passing | None. |
-| UI-007 | 12 | Missing From/To errors are shown | Playwright | Missing address validation test. | Covered / Passing | None. |
-| UI-008 | 12 | Address not found is clear and route is not drawn | Test docs only | Planned in UI test cases. | Gap | Add Playwright test with mocked empty geocoder and no municipality match. |
-| UI-009 | 12 | Road graph loading/failure errors are shown | Test docs only | Planned in UI test cases. | Gap | Add Playwright route-mock tests for failed GeoJSON loads. |
-| UI-010 | 10, 11 | Mobile layout remains usable and readable | Playwright | Mobile load, autocomplete, and route calculation tests. | Covered / Passing | Add screenshot/overlap checks if visual regressions continue. |
+| ID | Priority | Requirement Section | Requirement Type | Spec Link | Future / Out-of-scope Item | Example / Fixture | Test Level | Automation Type | Coverage Status | Gap Reason / Next Action |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| FUT-001 | P2 | §2 Out Of Scope; §14 Accident Map | Future | [spec §2 Out of Scope](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:27), [spec §14 Accident Map](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:373) | Accident-risk scoring and accident map. | N/A | N/A | None | Out of scope | Do not require current-release tests. |
+| FUT-002 | P2 | §2 Out Of Scope; §14 Bicycle Safe Path | Future | [spec §2 Out of Scope](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:27), [spec §14 Bicycle Safe Path](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:385) | Bicycle routing. | N/A | N/A | None | Out of scope | Do not require current-release tests. |
+| FUT-003 | P2 | §2 Out Of Scope | Future | [spec §2 Out of Scope](/Users/dina/Library/CloudStorage/GoogleDrive-kleiman.dina@gmail.com/My%20Drive/GitHubProjects/safe%20path%20app/docs/spec.md:27) | Bus-stop logic. | N/A | N/A | None | Out of scope | Do not require current-release tests. |
 
-## Security And Robustness Traceability
+## Current Release QA Gaps
 
-| ID | Spec Ref | Requirement / Risk | Test Type | Current Automated Coverage | Status | Gap / Next Action |
-| --- | --- | --- | --- | --- | --- | --- |
-| SEC-001 | General | No API keys or secrets in frontend config | Manual / static | No explicit automated test. | Gap | Add secret scan or CI check before release. |
-| SEC-002 | General | External geocoder data is not trusted as safety data | Architecture + tests | Route is built from local graph. | Partial | Add explicit test if geocoder result is malicious/outside bounds. |
-| SEC-003 | General | External/map popup text should not inject HTML | Implementation | Traffic-light popup text is escaped before insertion into Leaflet popup HTML. | Partial | Add unit test for escaping if popup logic is extracted. |
-| SEC-004 | General | GeoJSON files are valid and do not break app load | Vitest + Playwright | Data load tests exist. | Partial | Add malformed-data negative tests if import pipeline changes. |
-| SEC-005 | General | Dependency risk reviewed | Manual | Not covered by current automated tests. | Gap | Run `npm audit` as release check and document result. |
-
-## Current Highest-Priority Gaps
-
-1. `SEARCH-013`: External autocomplete can show nearby non-Tel-Aviv places if the result looks like Tel Aviv inside the current bounds; stricter municipality boundary data is still not implemented.
-2. `UI-008` and `UI-009`: Address-not-found and data-load failure UI states are planned but not automated.
-3. `SEC-003`: Popup text escaping was added, but no dedicated unit test exists yet.
-4. `ROUTE-004`: Add explicit fixture where a better signalized route is over `1.3x` and normal mode rejects it.
-
-## Release QA Checklist
-
-Before reporting a release as product-passed:
-
-1. Update `docs/spec.md`.
-2. Update this traceability matrix.
-3. Run `npm test -- --run`.
-4. Run `npm run test:e2e`.
-5. Run `npm run lint`.
-6. Run `npm run build`.
-7. Review all rows marked `Gap` or `Partial`.
-8. State remaining product risks explicitly in the final QA report.
+| Priority | Gap ID | Gap Source | Required Action |
+| --- | --- | --- | --- |
+| P0 | `NEG-002` | Needs test only | Add address-not-found Playwright test. |
+| P0 | `NEG-003` | Needs test only | Add road-data loading/failure Playwright route mock. |
+| P0 | `NEG-004` | Needs test only | Add standard disconnected route UI test. |
+| P0 | `EDGE-004` | Needs test only | Add explicit `1.3x` detour-cap fixture. |
+| P0 | `EDGE-005` | Needs stable test data | Find/create fixture where preferred route must keep non-signalized crossings. |
+| P0 | `HP-014` | Needs stable test data | Find real same-name entity case or ask product before synthetic fixture. |
+| P1 | `HP-012` | Needs test only | Add marker-count and marker z-order assertions. |
+| P1 | `HP-013` | Needs test only | Add mobile route-mode and visual overlap coverage. |
+| P1 | `HP-015` | Requirement not fully implemented | Decide which broader place layers are current release scope before adding tests. |
+| P1 | `DATA-004` | Needs test only | Add external-geocoder-not-safety-source test. |
+| P1 | `DATA-006` | Needs test only | Add LFS/static repository check if required before release. |
+| P1 | `SEC-001` | Needs test only | Add secret scan. |
