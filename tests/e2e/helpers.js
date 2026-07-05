@@ -14,15 +14,15 @@ export async function prepareApp(page, { geocoderResults = [] } = {}) {
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Safe Path" })).toBeVisible();
-  await expect(page.getByText("Traffic lights: 495")).toBeVisible();
+  await expect(page.locator(".leaflet-container")).toBeVisible();
 }
 
 export function fromInput(page) {
-  return page.getByPlaceholder("Example: Dizengoff Center");
+  return page.getByPlaceholder("Choose starting point");
 }
 
 export function toInput(page) {
-  return page.getByPlaceholder("Example: Tel Aviv Port");
+  return page.getByPlaceholder("Choose destination");
 }
 
 export async function fillFrom(page, value) {
@@ -51,6 +51,11 @@ export async function clickFindRoute(page) {
 }
 
 export async function calculateRoute(page, from, to, mode = "fastest") {
+  if ((await fromInput(page).count()) === 0) {
+    await page.getByRole("button", { name: "Edit" }).click();
+    await expect(fromInput(page)).toBeVisible();
+  }
+
   await fillFrom(page, from);
   await fillTo(page, to);
   await closeAutocomplete(page);

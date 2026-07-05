@@ -313,19 +313,19 @@ describe("Tel Aviv municipality data integration", () => {
     expect(trafficLightNodeCount).toBeGreaterThan(trafficLights.features.length);
   });
 
-  it("calculates distinct route behavior for Moshe Sharett 80 to Tel Aviv Port", () => {
-    const mosheSharett80 = point(34.79287, 32.08747);
+  it("calculates distinct route behavior for Ibn Gvirol 71 to Tel Aviv Port", () => {
+    const ibnGvirol71 = point(34.781059554247726, 32.0823082728593);
     const telAvivPort = point(34.77455, 32.09612);
 
     const fastest = buildMunicipalityRoute(
       graph,
-      mosheSharett80,
+      ibnGvirol71,
       telAvivPort,
       "fastest",
     );
     const preferTrafficLights = buildMunicipalityRoute(
       graph,
-      mosheSharett80,
+      ibnGvirol71,
       telAvivPort,
       "preferTrafficLights",
     );

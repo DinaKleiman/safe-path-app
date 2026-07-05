@@ -43,7 +43,7 @@ const crossingMismatchIcon = L.divIcon({
   popupAnchor: [0, -6],
 });
 
-function trafficLightPoint(feature, latlng) {
+function trafficLightPoint(_feature, latlng) {
   return L.marker(latlng, {
     icon: trafficLightIcon,
   });
@@ -160,7 +160,7 @@ function RouteCrossingMismatchSymbols({ route }) {
   ));
 }
 
-export default function MapView({ route }) {
+export default function MapView({ osmWarning, route }) {
   const [signals, setSignals] = useState(null);
   const [error, setError] = useState("");
 
@@ -187,17 +187,7 @@ export default function MapView({ route }) {
       <div className="map-toolbar">
         <div>
           <h2>Tel Aviv route map</h2>
-          <p>Walking route + municipality traffic-light locations</p>
-        </div>
-
-        <div className="map-stats">
-          <span>
-            Traffic lights: {signals ? signals.features?.length ?? 0 : "..."}
-          </span>
-          <span>
-            Route traffic lights: {route?.properties?.trafficLightCount ?? 0}
-          </span>
-          <span>Route: {route ? "shown" : "not yet"}</span>
+          {osmWarning && <p className="map-osm-warning">{osmWarning}</p>}
         </div>
       </div>
 

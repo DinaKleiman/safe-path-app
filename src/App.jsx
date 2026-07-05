@@ -82,7 +82,11 @@ const ROUTE_MODES = [
 ];
 
 function normalizeAddress(address) {
-  return address.trim().replace(/\s+/g, " ");
+  return address
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/([^\d\s])(\d)/g, "$1 $2")
+    .replace(/(\d)([^\d\s])/g, "$1 $2");
 }
 
 function normalizeHebrewAddress(address) {
@@ -279,6 +283,7 @@ function AddressField({
   municipalitySearchIndex,
   value,
   onChange,
+  onSubmit,
   placeholder,
 }) {
   const [suggestions, setSuggestions] = useState([]);
@@ -378,9 +383,14 @@ function AddressField({
             );
           }
 
-          if (event.key === "Enter" && showSuggestions && activeIndex >= 0) {
-            event.preventDefault();
-            handleSelect(suggestions[activeIndex]);
+          if (event.key === "Enter") {
+            if (showSuggestions && activeIndex >= 0) {
+              event.preventDefault();
+              handleSelect(suggestions[activeIndex]);
+            } else if (!showSuggestions || suggestions.length === 0) {
+              event.preventDefault();
+              onSubmit?.();
+            }
           }
 
           if (event.key === "Escape") {
@@ -445,8 +455,8 @@ function AddressField({
 }
 
 export default function App() {
-  const [from, setFrom] = useState("Dizengoff Center, Tel Aviv");
-  const [to, setTo] = useState("Tel Aviv Port");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [routeMode, setRouteMode] = useState("preferTrafficLights");
   const [roadGraph, setRoadGraph] = useState(null);
   const [roadGraphError, setRoadGraphError] = useState("");
@@ -455,6 +465,7 @@ export default function App() {
   const [route, setRoute] = useState(null);
   const [routeSummary, setRouteSummary] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [inputsCollapsed, setInputsCollapsed] = useState(false);
 
   useEffect(() => {
     async function loadRoadNetwork() {
@@ -694,10 +705,12 @@ export default function App() {
           : "",
         ...extraSummary,
       });
+      setInputsCollapsed(true);
     } catch (error) {
       setRouteSummary({
         error: error.message,
       });
+      setInputsCollapsed(false);
     } finally {
       setLoading(false);
     }
@@ -715,9 +728,7 @@ export default function App() {
   }
 
   async function handleDoItAnyway() {
-    await calculateRoute("trafficLightsPriority", {
-      triedHarder: true,
-    });
+    await calculateRoute("trafficLightsPriority");
   }
 
   function handleCancelLongRoute() {
@@ -741,60 +752,89 @@ export default function App() {
           <section className="card">
             <h2>Plan a safe route</h2>
 
-            <AddressField
-              id="from"
-              label="From"
-              municipalitySearchIndex={municipalitySearchIndex}
-              value={from}
-              onChange={setFrom}
-              placeholder="Example: Dizengoff Center"
-            />
-
-            <AddressField
-              id="to"
-              label="To"
-              municipalitySearchIndex={municipalitySearchIndex}
-              value={to}
-              onChange={setTo}
-              placeholder="Example: Tel Aviv Port"
-            />
-
-            <div className="filters">
-              <h3>Route mode</h3>
-
-              <div className="route-mode-options">
-                {ROUTE_MODES.map((mode) => (
-                  <label className="route-mode-option" key={mode.id}>
-                    <input
-                      checked={routeMode === mode.id}
-                      name="route-mode"
-                      onChange={() => setRouteMode(mode.id)}
-                      type="radio"
-                      value={mode.id}
-                    />
-                    <span>
-                      <strong>{mode.label}</strong>
-                      <small>{mode.description}</small>
-                    </span>
-                  </label>
-                ))}
+            {inputsCollapsed ? (
+              <div className="collapsed-summary">
+                <div className="collapsed-addresses">
+                  <span>{from}</span>
+                  <span className="collapsed-arrow">→</span>
+                  <span>{to}</span>
+                </div>
+                <button
+                  className="secondary-button"
+                  onClick={() => setInputsCollapsed(false)}
+                  type="button"
+                >
+                  Edit
+                </button>
               </div>
-            </div>
+            ) : (
+              <>
+                <AddressField
+                  id="from"
+                  label="From"
+                  municipalitySearchIndex={municipalitySearchIndex}
+                  value={from}
+                  onChange={setFrom}
+                  onSubmit={handleFindRoute}
+                  placeholder="Choose starting point"
+                />
 
-            <button
-              className="primary-button"
-              disabled={loading || !roadGraph}
-              onClick={handleFindRoute}
-            >
-              {loading
-                ? "Finding route..."
-                : roadGraph
-                  ? "Find safe route"
-                  : "Loading municipality roads..."}
-            </button>
+                <AddressField
+                  id="to"
+                  label="To"
+                  municipalitySearchIndex={municipalitySearchIndex}
+                  value={to}
+                  onChange={setTo}
+                  onSubmit={handleFindRoute}
+                  placeholder="Choose destination"
+                />
+
+                <div className="filters">
+                  <h3>Route mode</h3>
+
+                  <div className="route-mode-options">
+                    {ROUTE_MODES.map((mode) => (
+                      <label className="route-mode-option" key={mode.id}>
+                        <input
+                          checked={routeMode === mode.id}
+                          name="route-mode"
+                          onChange={() => setRouteMode(mode.id)}
+                          type="radio"
+                          value={mode.id}
+                        />
+                        <span>
+                          <strong>{mode.label}</strong>
+                          <small>{mode.description}</small>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  className="primary-button"
+                  disabled={loading || !roadGraph}
+                  onClick={handleFindRoute}
+                  type="button"
+                >
+                  {loading
+                    ? "Finding route..."
+                    : roadGraph
+                      ? "Find safe route"
+                      : "Loading municipality roads..."}
+                </button>
+              </>
+            )}
           </section>
 
-          <section className="card">
+        </aside>
+
+        <div className="map-and-result">
+          <section className="map-panel">
+            <MapView osmWarning={routeSummary?.message} route={route} />
+          </section>
+
+          <section className="card result-card">
             <h2>Route result</h2>
 
             {roadGraphError && (
@@ -817,9 +857,6 @@ export default function App() {
 
             {routeSummary && !routeSummary.error && (
               <div>
-                {routeSummary.message && (
-                  <p className="route-data-warning">{routeSummary.message}</p>
-                )}
                 <p>
                   <strong>Distance:</strong>{" "}
                   {(routeSummary.distanceMeters / 1000).toFixed(2)} km
@@ -869,7 +906,7 @@ export default function App() {
                       </button>
                       {routeSummary.needsLongRouteConfirmation && (
                         <div className="route-confirmation">
-                          <p>This can significantly lengthen the path.</p>
+                          <p>This may significantly lengthen your route and may still include crossings without traffic lights.</p>
                           <button
                             className="secondary-button"
                             disabled={loading || !roadGraph}
@@ -890,21 +927,10 @@ export default function App() {
                       )}
                     </div>
                   )}
-                {routeSummary.triedHarder &&
-                  routeSummary.unsignalizedCrossingCount > 0 && (
-                    <p className="route-note">
-                      Please note: this route may still include crossings
-                      without traffic lights.
-                    </p>
-                  )}
               </div>
             )}
           </section>
-        </aside>
-
-        <section className="map-panel">
-          <MapView route={route} />
-        </section>
+        </div>
       </main>
     </div>
   );

@@ -24,3 +24,8 @@ test-results
 *.njsproj
 *.sln
 *.sw?
+
+.env
+
+# Street patch working files
+data/street_patches*.csv

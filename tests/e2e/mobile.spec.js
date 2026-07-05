@@ -6,6 +6,11 @@ import {
   prepareApp,
 } from "./helpers";
 
+const MOBILE_ROUTE = {
+  from: "אבן גבירול 71",
+  to: "נמל תל אביב",
+};
+
 test.beforeEach(async ({ page }) => {
   await prepareApp(page);
 });
@@ -28,11 +33,11 @@ test.describe("mobile experience", () => {
   });
 
   test("mobile route calculation keeps result and map readable", async ({ page }) => {
-    await calculateRoute(page, "משה שרת 80", "Tel Aviv Port", "fastest");
+    await calculateRoute(page, MOBILE_ROUTE.from, MOBILE_ROUTE.to, "fastest");
 
     await expect(page.getByText(/Distance:\s+\d+\.\d{2} km/)).toBeVisible();
     await expect(page.getByText(/Estimated walking time:\s+\d+ min/)).toBeVisible();
-    await expect(page.getByText("Route: shown")).toBeVisible();
+    await expect(page.locator(".leaflet-overlay-pane svg path").first()).toBeVisible();
     await expect(page.locator(".leaflet-container")).toBeVisible();
   });
 });

@@ -9,9 +9,39 @@ import {
   routeMetric,
 } from "./helpers";
 
+const ROUTE_FIXTURES = {
+  hebrewToHebrew: {
+    from: "אבן גבירול 71",
+    to: "נמל תל אביב",
+  },
+  englishToEnglish: {
+    from: "IBN GVIROL 71",
+    to: "Tel Aviv Port",
+  },
+  hebrewToEnglish: {
+    from: "אבן גבירול 71",
+    to: "Tel Aviv Port",
+  },
+  englishToHebrew: {
+    from: "IBN GVIROL 71",
+    to: "נמל תל אביב",
+  },
+};
+
 test.beforeEach(async ({ page }) => {
   await prepareApp(page);
 });
+
+async function expectSuccessfulRouteResult(page, routeModeText) {
+  await expect(page.getByText(/Distance:\s+\d+\.\d{2} km/)).toBeVisible();
+  await expect(page.getByText(/Estimated walking time:\s+\d+ min/)).toBeVisible();
+  await expect(page.getByText(`Route mode: ${routeModeText}`)).toBeVisible();
+  await expect(page.getByText(/Traffic lights on route:\s+\d+/)).toBeVisible();
+  await expect(page.getByText(/Crossings without confirmed traffic lights:\s+\d+/)).toBeVisible();
+  await expect(page.getByText(/Signalized pedestrian crossings:\s+\d+/)).toBeVisible();
+  await expect(page.getByText(/Non-signalized pedestrian crossings:\s+\d+/)).toBeVisible();
+  await expect(page.locator(".leaflet-overlay-pane svg path").first()).toBeVisible();
+}
 
 test.describe("desktop route UI", () => {
   test("header does not show developer test copy", async ({ page }) => {
@@ -35,22 +65,56 @@ test.describe("desktop route UI", () => {
     await expect(fastest).not.toBeChecked();
   });
 
-  test("fastest route calculates and displays required values", async ({ page }) => {
-    await calculateRoute(page, "משה שרת 80", "Tel Aviv Port", "fastest");
+  test("fastest route calculates and displays required values for Hebrew route input", async ({ page }) => {
+    await calculateRoute(
+      page,
+      ROUTE_FIXTURES.hebrewToHebrew.from,
+      ROUTE_FIXTURES.hebrewToHebrew.to,
+      "fastest",
+    );
 
-    await expect(page.getByText(/Distance:\s+\d+\.\d{2} km/)).toBeVisible();
-    await expect(page.getByText(/Estimated walking time:\s+\d+ min/)).toBeVisible();
-    await expect(page.getByText("Route mode: Fastest")).toBeVisible();
-    await expect(page.getByText(/Traffic lights on route:\s+\d+/)).toBeVisible();
-    await expect(page.getByText(/Crossings without confirmed traffic lights:\s+\d+/)).toBeVisible();
-    await expect(page.getByText(/Signalized pedestrian crossings:\s+\d+/)).toBeVisible();
-    await expect(page.getByText(/Non-signalized pedestrian crossings:\s+\d+/)).toBeVisible();
+    await expectSuccessfulRouteResult(page, "Fastest");
     await expect(page.getByText("This route partly uses open-source pedestrian crossing data and may contain mismatches.")).toBeVisible();
-    await expect(page.getByText("Route: shown")).toBeVisible();
+  });
+
+  test("fastest route calculates for English route input", async ({ page }) => {
+    await calculateRoute(
+      page,
+      ROUTE_FIXTURES.englishToEnglish.from,
+      ROUTE_FIXTURES.englishToEnglish.to,
+      "fastest",
+    );
+
+    await expectSuccessfulRouteResult(page, "Fastest");
+  });
+
+  test("route calculation supports Hebrew start and English destination when realistic", async ({ page }) => {
+    await calculateRoute(
+      page,
+      ROUTE_FIXTURES.hebrewToEnglish.from,
+      ROUTE_FIXTURES.hebrewToEnglish.to,
+      "fastest",
+    );
+    await expectSuccessfulRouteResult(page, "Fastest");
+  });
+
+  test("route calculation supports English start and Hebrew destination when realistic", async ({ page }) => {
+    await calculateRoute(
+      page,
+      ROUTE_FIXTURES.englishToHebrew.from,
+      ROUTE_FIXTURES.englishToHebrew.to,
+      "fastest",
+    );
+    await expectSuccessfulRouteResult(page, "Fastest");
   });
 
   test("prefer traffic lights route has more traffic lights than fastest for known A/B", async ({ page }) => {
-    await calculateRoute(page, "משה שרת 80", "Tel Aviv Port", "fastest");
+    await calculateRoute(
+      page,
+      ROUTE_FIXTURES.englishToEnglish.from,
+      ROUTE_FIXTURES.englishToEnglish.to,
+      "fastest",
+    );
     const fastestLights = Number(await routeMetric(page, "Traffic lights on route"));
     const fastestSignalizedCrossings = Number(
       await routeMetric(page, "Signalized pedestrian crossings"),
@@ -59,7 +123,12 @@ test.describe("desktop route UI", () => {
       await routeMetric(page, "Non-signalized pedestrian crossings"),
     );
 
-    await calculateRoute(page, "משה שרת 80", "Tel Aviv Port", "preferTrafficLights");
+    await calculateRoute(
+      page,
+      ROUTE_FIXTURES.englishToEnglish.from,
+      ROUTE_FIXTURES.englishToEnglish.to,
+      "preferTrafficLights",
+    );
     const saferLights = Number(await routeMetric(page, "Traffic lights on route"));
     const saferSignalizedCrossings = Number(
       await routeMetric(page, "Signalized pedestrian crossings"),
@@ -81,12 +150,12 @@ test.describe("desktop route UI", () => {
 
   test("missing address validation is visible", async ({ page }) => {
     await fillFrom(page, "");
-    await fillTo(page, "Tel Aviv Port");
+    await fillTo(page, ROUTE_FIXTURES.hebrewToHebrew.to);
     await closeAutocomplete(page);
     await clickFindRoute(page);
     await expect(page.getByText("Please enter both From and To.")).toBeVisible();
 
-    await fillFrom(page, "משה שרת 80");
+    await fillFrom(page, ROUTE_FIXTURES.hebrewToHebrew.from);
     await fillTo(page, "");
     await closeAutocomplete(page);
     await clickFindRoute(page);
@@ -98,7 +167,7 @@ test.describe("desktop route UI", () => {
 
     await expect(page.getByText("No better traffic-light crossing route was found within adding reasonable distance.")).toBeVisible();
     await page.getByRole("button", { name: "Try harder" }).click();
-    await expect(page.getByText("This can significantly lengthen the path.")).toBeVisible();
+    await expect(page.getByText("This may significantly lengthen your route and may still include crossings without traffic lights.")).toBeVisible();
     await page.getByRole("button", { name: "Do it anyway" }).click();
 
     await expect(page.getByText("Route mode: Try harder")).toBeVisible();
@@ -111,22 +180,22 @@ test.describe("desktop route UI", () => {
 
     expect(tryHarderSignalizedCrossings).toBeGreaterThan(0);
     expect(tryHarderUnsignalizedCrossings).toBeGreaterThan(0);
-    await expect(page.getByText(
-      "Please note: this route may still include crossings without traffic lights.",
-    )).toBeVisible();
   });
 });
 
 test.describe("map rendering", () => {
   test("map, traffic-light icons, route, and route markers render", async ({ page }) => {
-    await calculateRoute(page, "משה שרת 80", "Tel Aviv Port", "fastest");
+    await calculateRoute(
+      page,
+      ROUTE_FIXTURES.hebrewToHebrew.from,
+      ROUTE_FIXTURES.hebrewToHebrew.to,
+      "fastest",
+    );
 
     await expect(page.locator(".leaflet-container")).toBeVisible();
     await expect(page.locator(".traffic-light-marker").first()).toBeVisible();
     await expect(page.locator(".route-traffic-light-marker").first()).toBeVisible();
     await expect(page.locator(".leaflet-overlay-pane svg path").first()).toBeVisible();
-    await expect(page.getByText("Traffic lights: 495")).toBeVisible();
-    await expect(page.getByText(/Route traffic lights:\s+\d+/)).toBeVisible();
     await expect(page.locator(".leaflet-control-attribution")).toHaveCount(0);
   });
 });
