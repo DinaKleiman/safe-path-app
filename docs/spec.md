@@ -310,7 +310,15 @@ The map must not label all intersections as traffic lights.
 
 Yellow mismatch markers must not be used for traffic-light crossings and must not visually hide traffic-light markers.
 
-The map should not show visible attribution labels inside the map UI.
+The map must show the visible OpenStreetMap licence attribution ("© OpenStreetMap contributors") and a "Report a map issue" link, as required by the OSM Tile Usage Policy (https://operations.osmfoundation.org/policies/tiles/).
+
+OSM tile requirements:
+
+- Tile URL is exactly `https://tile.openstreetmap.org/{z}/{x}/{y}.png` (HTTPS, no a/b/c subdomains).
+- The browser must send the `Referer` header to `tile.openstreetmap.org`; no restrictive `Referrer-Policy` (site header or tile attribute) may block it.
+- Tiles are loaded only for the current viewport: no prefetching, bulk download, or offline tile caching.
+- Requests must not send `Cache-Control: no-cache` or `Pragma: no-cache`.
+- Map zoom is capped at 19, the highest level OSM serves.
 
 ## 11. Result Panel Requirements
 
@@ -433,7 +441,8 @@ Potential signals:
 - Result panel shows crossing counts.
 - OSM crossing warning appears when crossing data is used.
 - Map traffic-light markers are visible and are not generic intersection dots.
-- Map attribution labels are not visible in the UI.
+- OpenStreetMap attribution and the "Report a map issue" link are visible on the map.
+- Map tiles use the exact OSM tile URL and are requested with a Referer-friendly referrer policy.
 
 ### Data
 

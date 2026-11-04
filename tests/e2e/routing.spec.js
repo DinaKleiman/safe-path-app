@@ -127,6 +127,6 @@ test.describe("map rendering", () => {
     await expect(page.locator(".leaflet-overlay-pane svg path").first()).toBeVisible();
     await expect(page.getByText("Traffic lights: 495")).toBeVisible();
     await expect(page.getByText(/Route traffic lights:\s+\d+/)).toBeVisible();
-    await expect(page.locator(".leaflet-control-attribution")).toHaveCount(0);
+    await expect(page.locator(".leaflet-control-attribution")).toContainText("OpenStreetMap");
   });
 });
