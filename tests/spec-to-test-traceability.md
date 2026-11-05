@@ -20,7 +20,7 @@ Latest full known run:
 
 Latest targeted run:
 
-- Playwright desktop autocomplete/routing: passed after adding language-separation, keyboard-navigation, short-input, no-`Try harder`, and map-attribution checks.
+- Playwright desktop autocomplete/routing: passed after adding language-separation, keyboard-navigation, short-input, no-`Try harder`, and OSM tile-policy checks.
 
 Latest Google Maps benchmark run:
 
@@ -105,7 +105,7 @@ Latest Google Maps benchmark run:
 | UI-001 | 10 | Map shows route line, start, destination, traffic-light markers, and yellow mismatch markers when relevant | Playwright + implementation | Map rendering test covers main layers; routing logic exposes mismatch marker coordinates. | Partial | Add direct marker-count assertion for yellow mismatch markers. |
 | UI-002 | 10 | Traffic-light markers look like traffic-light symbols | Playwright | `.traffic-light-marker` visible. | Partial | Add visual/size assertion if icon CSS changes frequently. |
 | UI-003 | 10 | Map does not label all intersections as traffic lights | Playwright + implementation | Map uses `signalized_intersections.geojson`, not intersections layer. | Covered / Passing | None. |
-| UI-004 | 10 | Map attribution labels are not visible | Playwright | Map rendering test asserts `.leaflet-control-attribution` is not present. | Covered / Passing | None. |
+| UI-004 | 10 | OSM attribution and map-issue link are visible; tile URL, Referer and zoom follow the OSM Tile Usage Policy | Vitest + Playwright | `src/config/osmTiles.test.js` and `tests/e2e/osm-tile-policy.spec.js`. | Covered / Passing | None. |
 | UI-005 | 11 | Result panel displays required route values | Playwright | Fastest route test checks distance, time, mode, traffic lights, crossings without confirmed traffic lights, and crossing counts. | Covered / Passing | None. |
 | UI-005A | 8, 10, 11 | Yellow markers are shown only for non-signalized OSM pedestrian crossings and do not hide traffic-light markers | Vitest + planned Playwright | Route metrics verify crossings without confirmed traffic lights match non-signalized crossings for known routes; marker layer renders below traffic-light route markers. | Partial | Add Playwright marker-count and z-order visual assertion. |
 | UI-006 | 11 | `Try harder` not shown when route has signalized crossings | Playwright | Prefer-traffic-lights route test asserts the `Try harder` button is absent for a route with signalized crossings. | Covered / Passing | None. |

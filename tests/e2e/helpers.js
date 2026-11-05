@@ -8,7 +8,7 @@ export async function prepareApp(page, { geocoderResults = [] } = {}) {
     });
   });
 
-  await page.route("https://*.tile.openstreetmap.org/**", async (route) => {
+  await page.route("https://tile.openstreetmap.org/**", async (route) => {
     await route.abort();
   });
 

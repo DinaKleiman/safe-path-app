@@ -10,6 +10,12 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import {
+  OSM_ATTRIBUTION,
+  OSM_TILE_MAX_ZOOM,
+  OSM_TILE_REFERRER_POLICY,
+  OSM_TILE_URL,
+} from "../config/osmTiles";
 
 const TEL_AVIV_CENTER = [32.0853, 34.7818];
 
@@ -204,13 +210,16 @@ export default function MapView({ route }) {
       {error && <div className="map-error">Error: {error}</div>}
 
       <MapContainer
-        attributionControl={false}
         center={TEL_AVIV_CENTER}
         zoom={13}
+        maxZoom={OSM_TILE_MAX_ZOOM}
         className="map"
       >
         <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          url={OSM_TILE_URL}
+          attribution={OSM_ATTRIBUTION}
+          referrerPolicy={OSM_TILE_REFERRER_POLICY}
+          maxZoom={OSM_TILE_MAX_ZOOM}
         />
 
         {signals && (
